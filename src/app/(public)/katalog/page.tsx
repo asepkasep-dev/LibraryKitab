@@ -5,8 +5,8 @@ import {
   opsiPengarangKatalog,
   opsiSyarahKatalog,
 } from "@/db/queries"
-import { KatalogExplorer, type QueryKatalog } from "@/components/site/katalog-explorer"
-import { OPSI_URUT } from "@/lib/site"
+import { KatalogExplorer } from "@/components/site/katalog-explorer"
+import { bacaQuery } from "@/lib/katalog-query"
 
 export const metadata: Metadata = {
   title: "Katalog Kitab",
@@ -16,24 +16,6 @@ export const metadata: Metadata = {
 
 type HalamanProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>
-}
-
-const SEMUA = "semua"
-
-function ambil(nilai: string | string[] | undefined) {
-  return typeof nilai === "string" ? nilai : ""
-}
-
-function bacaQuery(sp: Record<string, string | string[] | undefined>): QueryKatalog {
-  const urut = ambil(sp.urut)
-  return {
-    q: ambil(sp.q).slice(0, 80),
-    kategori: ambil(sp.kategori) || SEMUA,
-    pengarang: ambil(sp.pengarang) || SEMUA,
-    syarah: ambil(sp.syarah) || SEMUA,
-    urut: OPSI_URUT.find((o) => o.nilai === urut)?.nilai ?? "terbaru",
-    halaman: Math.max(1, Number(ambil(sp.halaman)) || 1),
-  }
 }
 
 export default async function KatalogPage({ searchParams }: HalamanProps) {

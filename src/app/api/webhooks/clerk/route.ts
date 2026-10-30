@@ -73,16 +73,21 @@ export async function POST(req: Request) {
     .filter(Boolean)
     .join(" ")
 
-  const peran = evento.data.public_metadata?.role === "admin" ? "admin" : "member"
-  const status =
+  /**
+   * Nilai apa pun selain yang dikenal jatuh ke default aman. Peran hanya naik
+   * bila admin menulis public_metadata.role = "admin" lewat Clerk API/dashboard.
+   */
+  const peran: Role =
+    evento.data.public_metadata?.role === "admin" ? "admin" : "member"
+  const status: StatusPengguna =
     evento.data.public_metadata?.status === "nonaktif" ? "nonaktif" : "aktif"
 
   await pastikanPengguna({
     clerkId,
     email,
     namaLengkap: nama || null,
-    role: peran as Role,
-    status: status as StatusPengguna,
+    role: peran,
+    status,
   })
 
   return Response.json({ received: true, tipe: evento.type })

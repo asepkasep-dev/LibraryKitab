@@ -11,10 +11,16 @@ import {
   simpanProgresBaca,
   ubahCatatan,
 } from "@/db/mutations"
-import { kitabById } from "@/db/queries"
+import { kitabTayangById } from "@/db/queries"
 import { butuhMemberAksi } from "@/lib/auth"
 import { hitungPersentase } from "@/lib/format"
-import { MAKS_ISI_CATATAN, skemaIsiCatatan, skemaLabelBookmark } from "@/lib/baca"
+import {
+  MAKS_ISI_CATATAN,
+  skemaId,
+  skemaIsiCatatan,
+  skemaKitabHalaman,
+  skemaLabelBookmark,
+} from "@/lib/baca"
 import { gagal, sukses, type HasilAksi } from "./tipe"
 
 type InputHalaman = { kitabId: string; halaman: number }
@@ -24,8 +30,8 @@ type InputHalaman = { kitabId: string; halaman: number }
  * tidak dapat menyentuh bookmark/catatan orang lain meski mengirim id asing.
  */
 async function kitabDibuka(kitabId: string) {
-  const target = await kitabById(kitabId)
-  if (!target) throw new Error("Kitab tidak ditemukan di katalog kami.")
+  const target = await kitabTayangById(kitabId)
+  if (!target) throw new Error("Kitab ini belum tayang atau sudah dipindahkan ke rak arsip.")
   return target
 }
 
@@ -43,9 +49,10 @@ function segarkan(slug: string) {
   revalidatePath(`/baca/${slug}`)
 }
 
-export async function bukaSesiBaca(kitabId: string): Promise<HasilAksi> {
+export async function bukaSesiBaca(idMentah: string): Promise<HasilAksi> {
   try {
     await butuhMemberAksi()
+    const kitabId = skemaId.parse(idMentah)
     const target = await kitabDibuka(kitabId)
     await catatSesiBaca(kitabId)
     revalidatePath("/dashboard")
@@ -58,8 +65,9 @@ export async function bukaSesiBaca(kitabId: string): Promise<HasilAksi> {
 export async function simpanProgresBacaAksi(input: InputHalaman): Promise<HasilAksi> {
   try {
     const anggota = await butuhMemberAksi()
-    const target = await kitabDibuka(input.kitabId)
-    const halaman = halamanWajar(input.halaman, target.jumlahHalaman)
+    const awal = skemaKitabHalaman.parse(input)
+    const target = await kitabDibuka(awal.kitabId)
+    const halaman = halamanWajar(awal.halaman, target.jumlahHalaman)
     const persentase = hitungPersentase(halaman, target.jumlahHalaman)
 
     await simpanProgresBaca({
@@ -78,8 +86,9 @@ export async function simpanProgresBacaAksi(input: InputHalaman): Promise<HasilA
 export async function tambahBookmark(input: InputHalaman & { label?: string | null }): Promise<HasilAksi> {
   try {
     const anggota = await butuhMemberAksi()
-    const target = await kitabDibuka(input.kitabId)
-    const halaman = halamanWajar(input.halaman, target.jumlahHalaman)
+    const awal = skemaKitabHalaman.parse(input)
+    const target = await kitabDibuka(awal.kitabId)
+    const halaman = halamanWajar(awal.halaman, target.jumlahHalaman)
     const label = skemaLabelBookmark.parse(input.label ?? "")
 
     const id = await simpanBookmark({ userId: anggota.id, kitabId: target.id, halaman, label: label || null })
@@ -93,24 +102,26 @@ export async function tambahBookmark(input: InputHalaman & { label?: string | nu
 export async function hapusBookmarkHalaman(input: InputHalaman): Promise<HasilAksi> {
   try {
     const anggota = await butuhMemberAksi()
-    const target = await kitabDibuka(input.kitabId)
+    const awal = skemaKitabHalaman.parse(input)
+    const target = await kitabDibuka(awal.kitabId)
     const id = await hapusBookmark({
       userId: anggota.id,
       kitabId: target.id,
-      halaman: Math.trunc(input.halaman),
+      halaman: awal.halaman,
     })
     if (!id) return { ok: false, pesan: "Bookmark itu sudah tidak ada di daftar Anda." }
     segarkan(target.slug)
-    return sukses(id, `Bookmark halaman ${input.halaman} dihapus.`)
+    return sukses(id, `Bookmark halaman ${awal.halaman} dihapus.`)
   } catch (error) {
     return gagal(error)
   }
 }
 
 /** Dihapus dari halaman /dashboard/bookmark, tanpa perlu tahu kitabnya. */
-export async function hapusBookmarkId(id: string): Promise<HasilAksi> {
+export async function hapusBookmarkId(idMentah: string): Promise<HasilAksi> {
   try {
     const anggota = await butuhMemberAksi()
+    const id = skemaId.parse(idMentah)
     const terhapus = await hapusBookmarkById(id, anggota.id)
     if (!terhapus) return { ok: false, pesan: "Bookmark tidak ditemukan pada akun Anda." }
     revalidatePath("/dashboard/bookmark")
@@ -124,8 +135,9 @@ export async function hapusBookmarkId(id: string): Promise<HasilAksi> {
 export async function tambahCatatan(input: InputHalaman & { isi: string }): Promise<HasilAksi> {
   try {
     const anggota = await butuhMemberAksi()
-    const target = await kitabDibuka(input.kitabId)
-    const halaman = halamanWajar(input.halaman, target.jumlahHalaman)
+    const awal = skemaKitabHalaman.parse(input)
+    const target = await kitabDibuka(awal.kitabId)
+    const halaman = halamanWajar(awal.halaman, target.jumlahHalaman)
     const isi = skemaIsiCatatan.parse(input.isi)
 
     const id = await simpanCatatan({ userId: anggota.id, kitabId: target.id, halaman, isi })
@@ -136,9 +148,10 @@ export async function tambahCatatan(input: InputHalaman & { isi: string }): Prom
   }
 }
 
-export async function ubahCatatanIsi(id: string, isi: string): Promise<HasilAksi> {
+export async function ubahCatatanIsi(idMentah: string, isi: string): Promise<HasilAksi> {
   try {
     const anggota = await butuhMemberAksi()
+    const id = skemaId.parse(idMentah)
     const teks = skemaIsiCatatan.parse(isi)
     const terubah = await ubahCatatan(id, anggota.id, teks.slice(0, MAKS_ISI_CATATAN))
     if (!terubah) return { ok: false, pesan: "Catatan tidak ditemukan pada akun Anda." }
@@ -149,9 +162,10 @@ export async function ubahCatatanIsi(id: string, isi: string): Promise<HasilAksi
   }
 }
 
-export async function hapusCatatanId(id: string): Promise<HasilAksi> {
+export async function hapusCatatanId(idMentah: string): Promise<HasilAksi> {
   try {
     const anggota = await butuhMemberAksi()
+    const id = skemaId.parse(idMentah)
     const terhapus = await hapusCatatan(id, anggota.id)
     if (!terhapus) return { ok: false, pesan: "Catatan tidak ditemukan pada akun Anda." }
     revalidatePath("/dashboard/catatan")

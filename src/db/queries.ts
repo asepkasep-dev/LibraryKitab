@@ -279,6 +279,16 @@ export async function kitabById(id: string) {
   return row ? jadiKitabRel(row) : null
 }
 
+/** Sama seperti kitabById, tapi menolak kitab yang belum atau tidak lagi tayang. */
+export async function kitabTayangById(id: string) {
+  const rows = await kitabDenganRelasi({
+    where: and(eq(kitab.id, id), eq(kitab.status, "published")),
+    limit: 1,
+  })
+  const row = rows[0]
+  return row ? jadiKitabRel(row) : null
+}
+
 function polaIlike(kata: string) {
   return `%${kata.replace(/[\\%_]/g, (m) => `\\${m}`).toLowerCase()}%`
 }

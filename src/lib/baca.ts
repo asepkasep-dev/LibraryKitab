@@ -29,6 +29,14 @@ export const skemaIsiCatatan = z
   .min(3, "Tulis minimal 3 karakter agar catatannya berguna nanti.")
   .max(MAKS_ISI_CATATAN, `Catatan maksimal ${MAKS_ISI_CATATAN} karakter.`)
 
+/** Semua id dari client dibandingkan pada kolom uuid, jadi bentuknya wajib uuid. */
+export const skemaId = z.uuid("Identitas data tidak dikenali.")
+
+export const skemaKitabHalaman = z.object({
+  kitabId: skemaId,
+  halaman: z.number().int("Nomor halaman memakai bilangan bulat.").min(1),
+})
+
 export function batasiZoom(nilai: number) {
   return Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round(nilai)))
 }

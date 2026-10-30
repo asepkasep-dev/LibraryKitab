@@ -38,19 +38,9 @@ import type {
   KategoriVe,
   PengarangVe,
 } from "@/db/queries"
+import { SEMUA, type QueryKatalog } from "@/lib/katalog-query"
 import { OPSI_URUT, type UrutanKatalog } from "@/lib/site"
 import { formatAngka } from "@/lib/format"
-
-const SEMUA = "semua"
-
-export type QueryKatalog = {
-  q: string
-  kategori: string
-  pengarang: string
-  syarah: string
-  urut: UrutanKatalog
-  halaman: number
-}
 
 type Props = {
   awal: QueryKatalog

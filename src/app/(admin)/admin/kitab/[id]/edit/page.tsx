@@ -7,6 +7,7 @@ import { PageIntro } from "@/components/shell/sidebar-shell"
 import { FormKitab } from "@/components/admin/form-kitab"
 import { StatusKitabBadge } from "@/components/site/status-badge"
 import { kitabById, opsiKategori, opsiPengarang, opsiSyarah } from "@/db/queries"
+import { butuhAdmin } from "@/lib/auth"
 import { formatUkuranBerkas } from "@/lib/format"
 
 type HalamanProps = { params: Promise<{ id: string }> }
@@ -14,6 +15,7 @@ type HalamanProps = { params: Promise<{ id: string }> }
 export async function generateMetadata({
   params,
 }: HalamanProps): Promise<Metadata> {
+  await butuhAdmin()
   const { id } = await params
   const kitab = await kitabById(id)
   if (!kitab) return { title: "Kitab tidak ditemukan" }
