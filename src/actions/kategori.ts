@@ -11,7 +11,7 @@ import {
 import { hitungKitabTerhubung } from "@/db/queries"
 import { butuhAdminAksi } from "@/lib/auth"
 import { slugify } from "@/lib/format"
-import { skemaKategori } from "@/lib/validasi"
+import { skemaId, skemaKategori } from "@/lib/validasi"
 import { gagal, sukses, type HasilAksi } from "./tipe"
 
 type NilaiEntitas = Record<string, string>
@@ -28,6 +28,7 @@ export async function simpanKategori(
 ): Promise<HasilAksi> {
   try {
     const pengelola = await butuhAdminAksi()
+    const idKategori = id ? skemaId.parse(id) : null
     const data = skemaKategori.parse({
       nama: nilai.nama ?? "",
       slug: nilai.slug?.trim() ? slugify(nilai.slug) : slugify(nilai.nama ?? ""),
@@ -37,7 +38,7 @@ export async function simpanKategori(
     const bentrok = await kategoriTerpakai({
       nama: data.nama,
       slug: data.slug,
-      kecualiId: id ?? undefined,
+      kecualiId: idKategori ?? undefined,
     })
     if (bentrok) {
       return {
@@ -50,20 +51,20 @@ export async function simpanKategori(
       }
     }
 
-    const tersimpan = id
-      ? await ubahKategori(id, data)
+    const tersimpan = idKategori
+      ? await ubahKategori(idKategori, data)
       : await buatKategori(data)
 
     await tulisLog({
       adminId: pengelola.id,
-      aksi: id ? "kategori_diperbarui" : "kategori_dibuat",
+      aksi: idKategori ? "kategori_diperbarui" : "kategori_dibuat",
       targetTabel: "kategori",
       targetId: tersimpan.id,
       detail: `${tersimpan.nama} (${tersimpan.slug})`,
     })
     segarkan()
 
-    return sukses(tersimpan.id, id ? "Fan diperbarui." : `Fan “${tersimpan.nama}” ditambahkan.`)
+    return sukses(tersimpan.id, idKategori ? "Fan diperbarui." : `Fan “${tersimpan.nama}” ditambahkan.`)
   } catch (error) {
     return gagal(error)
   }
@@ -72,7 +73,8 @@ export async function simpanKategori(
 export async function hapusKategori(id: string): Promise<HasilAksi> {
   try {
     const pengelola = await butuhAdminAksi()
-    const terkait = await hitungKitabTerhubung({ kategoriId: id })
+    const idKategori = skemaId.parse(id)
+    const terkait = await hitungKitabTerhubung({ kategoriId: idKategori })
     if (terkait > 0) {
       return {
         ok: false,
@@ -80,16 +82,16 @@ export async function hapusKategori(id: string): Promise<HasilAksi> {
       }
     }
 
-    await hapusBarisKategori(id)
+    await hapusBarisKategori(idKategori)
     await tulisLog({
       adminId: pengelola.id,
       aksi: "kategori_dihapus",
       targetTabel: "kategori",
-      targetId: id,
+      targetId: idKategori,
     })
     segarkan()
 
-    return sukses(id, "Fan dihapus dari daftar kelola.")
+    return sukses(idKategori, "Fan dihapus dari daftar kelola.")
   } catch (error) {
     return gagal(error)
   }

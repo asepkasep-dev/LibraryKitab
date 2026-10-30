@@ -1,6 +1,7 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
-import { skemaId, skemaKitabHalaman } from "../src/lib/baca"
+import { skemaKitabHalaman } from "../src/lib/baca"
+import { skemaId } from "../src/lib/validasi"
 
 const UUID = "6f0f6f9c-3f5e-4c1a-9b7a-2d5c8e1a4b77"
 

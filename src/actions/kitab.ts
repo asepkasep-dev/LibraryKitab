@@ -13,7 +13,7 @@ import {
 import { adaKategori, adaPengarang, kitabById } from "@/db/queries"
 import { butuhAdminAksi } from "@/lib/auth"
 import { slugify } from "@/lib/format"
-import { skemaKitab, type KitabInput } from "@/lib/validasi"
+import { skemaId, skemaKitab, skemaStatusKitab, type KitabInput } from "@/lib/validasi"
 import { gagal, sukses, type HasilAksi } from "./tipe"
 
 export type BerkasKitab = { urlPdf?: string; ukuranPdfByte?: number }
@@ -58,9 +58,10 @@ export async function simpanKitab(
   try {
     const pengelola = await butuhAdminAksi()
     const input = skemaKitab.parse(data)
+    const idKitab = id ? skemaId.parse(id) : null
     await pastikanRelasi(input.kategoriId, input.pengarangId, input.syarahId)
 
-    const lama = id ? await kitabById(id) : null
+    const lama = idKitab ? await kitabById(idKitab) : null
     const urlPdf = berkas.urlPdf ?? lama?.urlPdf ?? ""
 
     if (input.status === "published" && !urlPdf) {
@@ -70,9 +71,9 @@ export async function simpanKitab(
       }
     }
 
-    const slug = await siapkanSlug(input.judulLatin, id ?? undefined)
-    const tersimpanId = id
-      ? await ubahKitab(id, { ...input, slug })
+    const slug = await siapkanSlug(input.judulLatin, idKitab ?? undefined)
+    const tersimpanId = idKitab
+      ? await ubahKitab(idKitab, { ...input, slug })
       : await buatKitab({ ...input, slug, urlPdf })
 
     if (berkas.urlPdf) {
@@ -85,7 +86,7 @@ export async function simpanKitab(
 
     await tulisLog({
       adminId: pengelola.id,
-      aksi: id ? "kitab_diperbarui" : "kitab_dibuat",
+      aksi: idKitab ? "kitab_diperbarui" : "kitab_dibuat",
       targetTabel: "kitab",
       targetId: tersimpanId,
       detail: `${input.judulLatin} (${slug}) — ${input.status}`,
@@ -94,7 +95,7 @@ export async function simpanKitab(
 
     return sukses(
       tersimpanId,
-      id ? "Perubahan kitab tersimpan." : `Kitab “${input.judulLatin}” tersimpan sebagai draf.`
+      idKitab ? "Perubahan kitab tersimpan." : `Kitab “${input.judulLatin}” tersimpan sebagai draf.`
     )
   } catch (error) {
     return gagal(error)
@@ -105,26 +106,32 @@ export async function simpanKitab(
 export async function gantiStatusKitab(id: string, status: KitabInput["status"]): Promise<HasilAksi> {
   try {
     const pengelola = await butuhAdminAksi()
-    const target = await kitabById(id)
+    const idKitab = skemaId.parse(id)
+    const statusKitab = skemaStatusKitab.parse(status)
+    const target = await kitabById(idKitab)
     if (!target) return { ok: false, pesan: "Kitab tidak ditemukan di database." }
 
-    if (status === "published" && !target.urlPdf) {
+    if (statusKitab === "published" && !target.urlPdf) {
       return { ok: false, pesan: "Kitab tanpa berkas PDF tidak dapat ditayangkan." }
     }
 
-    await ubahStatusKitab(id, status)
+    await ubahStatusKitab(idKitab, statusKitab)
     await tulisLog({
       adminId: pengelola.id,
       aksi: "kitab_status_diubah",
       targetTabel: "kitab",
-      targetId: id,
-      detail: `${target.status} → ${status}`,
+      targetId: idKitab,
+      detail: `${target.status} → ${statusKitab}`,
     })
     segarkan(target.slug)
 
     const label =
-      status === "published" ? "tayang di katalog" : status === "draft" ? "kembali menjadi draf" : "diarsipkan"
-    return sukses(id, `Kitab ${target.judulLatin} ${label}.`)
+      statusKitab === "published"
+        ? "tayang di katalog"
+        : statusKitab === "draft"
+          ? "kembali menjadi draf"
+          : "diarsipkan"
+    return sukses(idKitab, `Kitab ${target.judulLatin} ${label}.`)
   } catch (error) {
     return gagal(error)
   }
@@ -133,20 +140,21 @@ export async function gantiStatusKitab(id: string, status: KitabInput["status"])
 export async function hapusKitab(id: string): Promise<HasilAksi> {
   try {
     const pengelola = await butuhAdminAksi()
-    const target = await kitabById(id)
+    const idKitab = skemaId.parse(id)
+    const target = await kitabById(idKitab)
     if (!target) return { ok: false, pesan: "Kitab tidak ditemukan di database." }
 
-    await hapusBarisKitab(id)
+    await hapusBarisKitab(idKitab)
     await tulisLog({
       adminId: pengelola.id,
       aksi: "kitab_dihapus",
       targetTabel: "kitab",
-      targetId: id,
+      targetId: idKitab,
       detail: `${target.judulLatin} (${target.slug})`,
     })
     segarkan(target.slug)
 
-    return sukses(id, `Kitab “${target.judulLatin}” dihapus beserta bookmark dan catatannya.`)
+    return sukses(idKitab, `Kitab “${target.judulLatin}” dihapus beserta bookmark dan catatannya.`)
   } catch (error) {
     return gagal(error)
   }

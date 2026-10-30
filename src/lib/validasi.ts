@@ -1,5 +1,26 @@
 import { z } from "zod"
 
+/**
+ * Semua id yang datang dari client dibandingkan pada kolom uuid. Bentuknya
+ * diperiksa lebih dulu agar query tidak berangkat dengan nilai yang pasti salah.
+ */
+export const skemaId = z.uuid("Identitas data tidak dikenali.")
+
+export const skemaStatusKitab = z.enum(
+  ["draft", "published", "archived"],
+  "Status kitab tidak dikenali.",
+)
+
+export const skemaPeranAnggota = z.enum(
+  ["member", "admin"],
+  "Peran anggota tidak dikenali.",
+)
+
+export const skemaStatusAnggota = z.enum(
+  ["aktif", "nonaktif"],
+  "Status anggota tidak dikenali.",
+)
+
 export const KEPERLUAN = [
   "Usulan kitab untuk dipindai",
   "Laporan kesalahan tampilan",
@@ -120,9 +141,17 @@ export const skemaKitab = z.object({
     .trim()
     .min(3, "Judul Arab minimal 3 karakter.")
     .max(160, "Judul Arab maksimal 160 karakter."),
-  kategoriId: z.string().min(1, "Pilih kategori fan."),
-  pengarangId: z.string().min(1, "Pilih pengarang kitab."),
-  syarahId: z.string(),
+  kategoriId: z
+    .string()
+    .min(1, "Pilih kategori fan.")
+    .refine((v) => skemaId.safeParse(v).success, "Kategori tidak dikenali."),
+  pengarangId: z
+    .string()
+    .min(1, "Pilih pengarang kitab.")
+    .refine((v) => skemaId.safeParse(v).success, "Pengarang tidak dikenali."),
+  syarahId: z.union([z.literal(""), skemaId], {
+    error: "Penyusun syarah tidak dikenali.",
+  }),
   tahunTerbit: z
     .string()
     .trim()

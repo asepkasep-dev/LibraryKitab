@@ -9,6 +9,8 @@ export function sukses(id: string, pesan: string): HasilAksi {
   return { ok: true, id, pesan }
 }
 
+const PESAN_UMUM = "Belum berhasil menyimpan. Silakan coba lagi."
+
 export function gagal(error: unknown): HasilAksi {
   if (error instanceof ZodError) {
     const bidang: Record<string, string> = {}
@@ -33,10 +35,24 @@ export function gagal(error: unknown): HasilAksi {
         pesan: "Koneksi database belum dikonfigurasi. Isi DATABASE_URL di .env.local.",
       }
     }
+    if (adalahErrorTeknis(error)) {
+      catatDiServer(error)
+      return { ok: false, pesan: PESAN_UMUM }
+    }
     return { ok: false, pesan: error.message }
   }
 
-  return { ok: false, pesan: "Belum berhasil menyimpan. Silakan coba lagi." }
+  return { ok: false, pesan: PESAN_UMUM }
+}
+
+/** Error driver dan framework membawa pesan mentah berisi SQL; hanya pesan buatan kita yang aman untuk client. */
+function adalahErrorTeknis(error: Error) {
+  return error.name !== "Error"
+}
+
+function catatDiServer(error: Error) {
+  if (typeof window !== "undefined") return
+  console.error("[aksi] kegagalan teknis:", error.stack ?? error.message)
 }
 
 /** Postgres sqlstate 23505 (unique_violation) pada error Neon/driver. */

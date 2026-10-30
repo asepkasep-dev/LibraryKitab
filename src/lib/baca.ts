@@ -6,6 +6,7 @@
 
 import { z } from "zod"
 import type { KitabVe } from "@/db/queries"
+import { skemaId } from "@/lib/validasi"
 
 /** Rentang zoom sesuai Bab 6.C: 50% sampai 250%. */
 export const ZOOM_MIN = 50
@@ -29,9 +30,7 @@ export const skemaIsiCatatan = z
   .min(3, "Tulis minimal 3 karakter agar catatannya berguna nanti.")
   .max(MAKS_ISI_CATATAN, `Catatan maksimal ${MAKS_ISI_CATATAN} karakter.`)
 
-/** Semua id dari client dibandingkan pada kolom uuid, jadi bentuknya wajib uuid. */
-export const skemaId = z.uuid("Identitas data tidak dikenali.")
-
+/** Nomor halaman dan id kitab dari reader wajib masuk dalam bentuk yang sah. */
 export const skemaKitabHalaman = z.object({
   kitabId: skemaId,
   halaman: z.number().int("Nomor halaman memakai bilangan bulat.").min(1),

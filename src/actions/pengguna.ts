@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache"
 import { ubahRolePengguna, ubahStatusPengguna, tulisLog } from "@/db/mutations"
 import { penggunaById } from "@/db/queries"
 import { butuhAdminAksi } from "@/lib/auth"
+import { skemaId, skemaPeranAnggota, skemaStatusAnggota } from "@/lib/validasi"
 import { gagal, sukses, type HasilAksi } from "./tipe"
 
 import type { Role, StatusPengguna } from "@/db/queries"
@@ -28,22 +29,24 @@ function janganUbahDiriSendiri(pengelolaId: string, targetId: string) {
 export async function ubahStatusAnggota(id: string, status: StatusPengguna): Promise<HasilAksi> {
   try {
     const pengelola = await butuhAdminAksi()
-    janganUbahDiriSendiri(pengelola.id, id)
+    const idAnggota = skemaId.parse(id)
+    const statusAnggota = skemaStatusAnggota.parse(status)
+    janganUbahDiriSendiri(pengelola.id, idAnggota)
 
-    const target = await penggunaById(id)
+    const target = await penggunaById(idAnggota)
     if (!target) return { ok: false, pesan: "Pengguna tidak ditemukan di database." }
 
-    await ubahStatusPengguna(id, status)
+    await ubahStatusPengguna(idAnggota, statusAnggota)
     await tulisLog({
       adminId: pengelola.id,
-      aksi: status === "aktif" ? "pengguna_diaktifkan" : "pengguna_dinonaktifkan",
+      aksi: statusAnggota === "aktif" ? "pengguna_diaktifkan" : "pengguna_dinonaktifkan",
       targetTabel: "users",
-      targetId: id,
-      detail: `${target.email}: ${target.status} → ${status}`,
+      targetId: idAnggota,
+      detail: `${target.email}: ${target.status} → ${statusAnggota}`,
     })
     revalidatePath("/admin/pengguna")
 
-    return sukses(id, `Akun ${target.email} ${LABEL_STATUS[status]}.`)
+    return sukses(idAnggota, `Akun ${target.email} ${LABEL_STATUS[statusAnggota]}.`)
   } catch (error) {
     return gagal(error)
   }
@@ -52,22 +55,24 @@ export async function ubahStatusAnggota(id: string, status: StatusPengguna): Pro
 export async function ubahPeranAnggota(id: string, role: Role): Promise<HasilAksi> {
   try {
     const pengelola = await butuhAdminAksi()
-    janganUbahDiriSendiri(pengelola.id, id)
+    const idAnggota = skemaId.parse(id)
+    const peranAnggota = skemaPeranAnggota.parse(role)
+    janganUbahDiriSendiri(pengelola.id, idAnggota)
 
-    const target = await penggunaById(id)
+    const target = await penggunaById(idAnggota)
     if (!target) return { ok: false, pesan: "Pengguna tidak ditemukan di database." }
 
-    await ubahRolePengguna(id, role)
+    await ubahRolePengguna(idAnggota, peranAnggota)
     await tulisLog({
       adminId: pengelola.id,
       aksi: "pengguna_peran_diubah",
       targetTabel: "users",
-      targetId: id,
-      detail: `${target.email}: ${target.role} → ${role}`,
+      targetId: idAnggota,
+      detail: `${target.email}: ${target.role} → ${peranAnggota}`,
     })
     revalidatePath("/admin/pengguna")
 
-    return sukses(id, `${target.email} kini berperan sebagai ${LABEL_PERAN[role]}.`)
+    return sukses(idAnggota, `${target.email} kini berperan sebagai ${LABEL_PERAN[peranAnggota]}.`)
   } catch (error) {
     return gagal(error)
   }

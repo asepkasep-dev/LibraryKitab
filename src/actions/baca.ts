@@ -16,11 +16,11 @@ import { butuhMemberAksi } from "@/lib/auth"
 import { hitungPersentase } from "@/lib/format"
 import {
   MAKS_ISI_CATATAN,
-  skemaId,
   skemaIsiCatatan,
   skemaKitabHalaman,
   skemaLabelBookmark,
 } from "@/lib/baca"
+import { skemaId } from "@/lib/validasi"
 import { gagal, sukses, type HasilAksi } from "./tipe"
 
 type InputHalaman = { kitabId: string; halaman: number }

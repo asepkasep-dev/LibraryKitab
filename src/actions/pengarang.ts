@@ -10,7 +10,7 @@ import {
 } from "@/db/mutations"
 import { hitungKitabTerhubung } from "@/db/queries"
 import { butuhAdminAksi } from "@/lib/auth"
-import { skemaPengarang } from "@/lib/validasi"
+import { skemaId, skemaPengarang } from "@/lib/validasi"
 import { gagal, sukses, type HasilAksi } from "./tipe"
 
 type NilaiEntitas = Record<string, string>
@@ -27,6 +27,7 @@ export async function simpanPengarang(
 ): Promise<HasilAksi> {
   try {
     const pengelola = await butuhAdminAksi()
+    const idPengarang = id ? skemaId.parse(id) : null
     const data = skemaPengarang.parse({
       namaArab: nilai.namaArab ?? "",
       namaLatin: nilai.namaLatin ?? "",
@@ -36,7 +37,7 @@ export async function simpanPengarang(
 
     const bentrok = await pengarangTerpakai({
       namaLatin: data.namaLatin,
-      kecualiId: id ?? undefined,
+      kecualiId: idPengarang ?? undefined,
     })
     if (bentrok) {
       return {
@@ -46,11 +47,11 @@ export async function simpanPengarang(
       }
     }
 
-    const tersimpan = id ? await ubahPengarang(id, data) : await buatPengarang(data)
+    const tersimpan = idPengarang ? await ubahPengarang(idPengarang, data) : await buatPengarang(data)
 
     await tulisLog({
       adminId: pengelola.id,
-      aksi: id ? "pengarang_diperbarui" : "pengarang_dibuat",
+      aksi: idPengarang ? "pengarang_diperbarui" : "pengarang_dibuat",
       targetTabel: "pengarang",
       targetId: tersimpan.id,
       detail: tersimpan.namaLatin,
@@ -59,7 +60,7 @@ export async function simpanPengarang(
 
     return sukses(
       tersimpan.id,
-      id ? "Data pengarang diperbarui." : `Pengarang “${tersimpan.namaLatin}” ditambahkan.`
+      idPengarang ? "Data pengarang diperbarui." : `Pengarang “${tersimpan.namaLatin}” ditambahkan.`
     )
   } catch (error) {
     return gagal(error)
@@ -73,8 +74,9 @@ export async function simpanPengarang(
 export async function hapusPengarang(id: string): Promise<HasilAksi> {
   try {
     const pengelola = await butuhAdminAksi()
-    const sebagaiPenulis = await hitungKitabTerhubung({ pengarangId: id })
-    const sebagaiSyarah = await hitungKitabTerhubung({ syarahId: id })
+    const idPengarang = skemaId.parse(id)
+    const sebagaiPenulis = await hitungKitabTerhubung({ pengarangId: idPengarang })
+    const sebagaiSyarah = await hitungKitabTerhubung({ syarahId: idPengarang })
     if (sebagaiPenulis > 0 || sebagaiSyarah > 0) {
       const perian =
         sebagaiPenulis > 0 && sebagaiSyarah > 0
@@ -90,16 +92,16 @@ export async function hapusPengarang(id: string): Promise<HasilAksi> {
       }
     }
 
-    await hapusBarisPengarang(id)
+    await hapusBarisPengarang(idPengarang)
     await tulisLog({
       adminId: pengelola.id,
       aksi: "pengarang_dihapus",
       targetTabel: "pengarang",
-      targetId: id,
+      targetId: idPengarang,
     })
     segarkan()
 
-    return sukses(id, "Pengarang dihapus dari daftar kelola.")
+    return sukses(idPengarang, "Pengarang dihapus dari daftar kelola.")
   } catch (error) {
     return gagal(error)
   }
