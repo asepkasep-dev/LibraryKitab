@@ -1,10 +1,13 @@
 /**
  * Seed basis dari data dummy Bab 9: seluruh fan (kategori), pengarang & syarah,
  * serta katalog kitab. Skrip idempoten — baris yang sudah ada dilewati, sehingga
- * aman dijalankan berulang kali. Jalankan dengan `npm run db:seed`.
+ * aman dijalankan berulang kali. Bila ADMIN_CLERK_ID diisi, akun itu dibuat atau
+ * dinaikkan menjadi admin lebih dahulu. Jalankan dengan `npm run db:seed`.
  */
+import "./env";
 import { kategori, kitab, pengarang } from "./schema";
 import { db } from "./index";
+import { angkatAdminDariEnv } from "./admin-seed";
 import { kategoriList, kitabList, pengarangList } from "../lib/dummy-data";
 
 function wajib<T>(nilai: T | undefined, pesan: string): T {
@@ -123,6 +126,8 @@ async function seedKitab(
 }
 
 async function main() {
+  console.log(await angkatAdminDariEnv());
+
   const idKategori = await seedKategori();
   const idPengarang = await seedPengarang();
   const diproses = await seedKitab(idKategori, idPengarang);
