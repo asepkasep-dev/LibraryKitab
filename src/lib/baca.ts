@@ -283,7 +283,7 @@ export type HalamanDummy = {
  * sehingga berpindah bolak-balik tidak mengubah isi halaman.
  */
 export function buatHalamanDummy(
-  kitab: KitabVe,
+  kitab: Pick<KitabVe, "slug" | "jumlahHalaman"> & { kategori: { slug: string } },
   nomor: number,
 ): HalamanDummy {
   const acak = acakTerpancing(hashTeks(`${kitab.slug}:${nomor}`))
