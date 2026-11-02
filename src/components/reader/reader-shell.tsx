@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState, type TouchEvent } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { AlertTriangle, ArrowLeft, CircleCheck, LoaderCircle, LogIn, Sparkles } from "lucide-react"
+import { AlertTriangle, ArrowLeft, CircleCheck, History, LoaderCircle, LogIn } from "lucide-react"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import {
@@ -393,8 +393,8 @@ export function ReaderShell({
   return (
     <div className="flex h-full min-h-0">
       <main className="relative flex min-w-0 flex-1 flex-col">
-        <header className="z-30 flex h-16 shrink-0 items-center gap-3 border-b border-white/10 bg-slate-950/70 px-3 backdrop-blur-xl sm:px-5">
-          <Button asChild variant="ghost" size="sm" className="gap-1.5 text-slate-200 hover:bg-white/10 hover:text-white">
+        <header className="z-30 flex h-16 shrink-0 items-center gap-3 border-b border-white/10 bg-navy/70 px-3 backdrop-blur-xl sm:px-5">
+          <Button asChild variant="ghost" size="sm" className="gap-1.5 text-foreground hover:bg-white/10 hover:text-white">
             <Link href={`/kitab/${kitab.slug}`}>
               <ArrowLeft className="size-4" strokeWidth={1.75} />
               <span className="hidden sm:inline">Detail kitab</span>
@@ -415,9 +415,9 @@ export function ReaderShell({
                 className={cn(
                   "hidden items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset md:inline-flex",
                   statusProgres === "gagal"
-                    ? "bg-amber-500/10 text-amber-300 ring-amber-500/25"
+                    ? "bg-peringatan/10 text-peringatan ring-peringatan/25"
                     : statusProgres === "tersimpan"
-                      ? "bg-emerald-500/10 text-emerald-300 ring-emerald-500/20"
+                      ? "bg-sukses/10 text-sukses ring-sukses/20"
                       : "bg-white/5 text-muted-foreground ring-white/10",
                 )}
               >
@@ -457,8 +457,8 @@ export function ReaderShell({
         {sumberAwal === "riwayat" && halamanAwal > 2 && !saranLanjutDitutup && (
           <div className="pointer-events-none absolute inset-x-0 top-20 z-30 flex justify-center px-4">
             <div className="surface-card pointer-events-auto flex max-w-full flex-wrap items-center gap-2 rounded-2xl px-3 py-2 text-xs">
-              <Sparkles className="size-4 shrink-0 text-gold" strokeWidth={1.75} />
-              <span className="text-slate-200">
+              <History className="size-4 shrink-0 text-gold" strokeWidth={1.75} />
+              <span className="text-foreground">
                 Melanjutkan dari halaman {halamanAwal} sesuai riwayat baca Anda.
               </span>
               <Button
@@ -522,7 +522,7 @@ export function ReaderShell({
       </main>
 
       {panel && layarLebar && (
-        <aside className="hidden w-[22rem] shrink-0 overflow-hidden border-s border-white/10 bg-slate-950/60 lg:flex lg:flex-col">
+        <aside className="hidden w-[22rem] shrink-0 overflow-hidden border-s border-white/10 bg-navy/60 lg:flex lg:flex-col">
           {panelBaca}
         </aside>
       )}
@@ -531,7 +531,7 @@ export function ReaderShell({
         <Sheet open onOpenChange={(buka) => !buka && setPanel(null)}>
           <SheetContent
             side="right"
-            className="w-[min(24rem,94vw)] gap-0 overflow-y-auto bg-slate-950/95 pt-14"
+            className="w-[min(24rem,94vw)] gap-0 overflow-y-auto bg-navy/95 pt-14"
           >
             <SheetHeader className="sr-only">
               <SheetTitle>Bookmark dan catatan</SheetTitle>

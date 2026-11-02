@@ -29,6 +29,7 @@
   --color-border: var(--border);
   --color-destructive: var(--destructive);
   --color-sukses: var(--sukses);
+  --color-peringatan: var(--peringatan);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
@@ -39,7 +40,10 @@
   --color-primary: var(--primary);
   --color-gold: var(--gold);
   --color-gold-hover: var(--gold-hover);
-  --color-teal: var(--teal);
+  --color-gold-lembut: var(--gold-lembut);
+  --color-kertas: var(--kertas);
+  --color-kertas-foreground: var(--kertas-foreground);
+  --color-kertas-sepia: var(--kertas-sepia);
   --color-navy: var(--navy);
   --color-navy-card: var(--navy-card);
   --color-popover-foreground: var(--popover-foreground);
@@ -60,8 +64,15 @@
   --navy-card: hsl(222, 40%, 10%);
   --gold: hsl(43, 74%, 56%);
   --gold-hover: hsl(43, 80%, 65%);
-  --teal: hsl(172, 60%, 45%);
+  --gold-lembut: hsl(43, 45%, 42%);
   --sukses: hsl(142, 65%, 50%);
+  --peringatan: hsl(38, 92%, 50%);
+
+  /* Warna kertas baca: pratinjau nuansa reader dan mode Sepia Malam memakai
+     nilai yang sama supaya apa yang dilihat pengelola sama dengan hasilnya. */
+  --kertas: hsl(43, 45%, 95%);
+  --kertas-foreground: hsl(217, 33%, 17%);
+  --kertas-sepia: hsl(36, 30%, 14%);
 
   --background: var(--navy);
   --foreground: hsl(210, 20%, 96%);
@@ -82,9 +93,9 @@
   --input: hsl(217 20% 22%);
   --ring: var(--gold);
   --chart-1: var(--gold);
-  --chart-2: var(--teal);
-  --chart-3: hsl(43 50% 40%);
-  --chart-4: hsl(172 40% 32%);
+  --chart-2: var(--gold-lembut);
+  --chart-3: hsl(43 55% 30%);
+  --chart-4: hsl(215 20% 34%);
   --chart-5: hsl(215 25% 42%);
   --radius: 0.75rem;
   --sidebar: hsl(222, 45%, 8%);
@@ -139,7 +150,7 @@
     @apply bg-background text-foreground antialiased;
     background-image:
       radial-gradient(60rem 40rem at 12% -10%, hsl(43 74% 56% / 0.07), transparent 60%),
-      radial-gradient(50rem 36rem at 92% 0%, hsl(172 60% 45% / 0.06), transparent 55%);
+      radial-gradient(50rem 36rem at 92% 0%, hsl(43 45% 42% / 0.08), transparent 55%);
     background-attachment: fixed;
   }
   h1,
@@ -181,7 +192,7 @@
   }
 
   .surface-card-hover {
-    @apply shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-lg hover:shadow-amber-500/10;
+    @apply shadow-sm transition-[transform,box-shadow] duration-200 hover:-translate-y-1 hover:shadow-lg hover:shadow-gold/10;
   }
 
   .surface-inset {
@@ -189,21 +200,17 @@
   }
 
   .badge-fan {
-    @apply inline-flex items-center gap-1 rounded-full bg-teal-500/15 px-2.5 py-0.5 text-xs font-medium text-teal-300 ring-1 ring-inset ring-teal-500/20;
-  }
-
-  .gold-text {
-    @apply bg-linear-to-r from-amber-200 via-[hsl(43_74%_56%)] to-amber-200 bg-clip-text text-transparent;
+    @apply inline-flex items-center gap-1 rounded-full bg-gold/10 px-2.5 py-0.5 text-xs font-medium text-gold/90 ring-1 ring-inset ring-gold/20;
   }
 
   /* Mode "Sepia Malam" pada reader (preferensi lokal). */
   .page-sepia {
     filter: sepia(0.55) saturate(0.85) brightness(0.82) contrast(0.95);
-    background-color: hsl(36 30% 14%) !important;
+    background-color: var(--kertas-sepia) !important;
   }
 
   .ornament-divider {
-    @apply h-px w-full bg-linear-to-r from-transparent via-[hsl(43_74%_56%/0.35)] to-transparent;
+    @apply h-px w-full bg-linear-to-r from-transparent via-gold/35 to-transparent;
   }
 }
 

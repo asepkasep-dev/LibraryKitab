@@ -166,7 +166,7 @@ export function KerjaPengguna({
             {awal.filter((row) => row.pengguna.role === "admin").length} pengelola
           </span>
           <span className="ms-auto inline-flex items-center gap-1.5">
-            <ShieldCheck className="size-3.5 text-teal-300" strokeWidth={1.75} />
+            <ShieldCheck className="size-3.5 text-gold/85" strokeWidth={1.75} />
             Menonaktifkan akun tidak menghapus bookmark dan catatan.
           </span>
         </div>

@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils"
 const LABEL: Record<StatusKitab, { teks: string; kelas: string; ikon: typeof EyeOff }> = {
   published: {
     teks: "Tayang",
-    kelas: "bg-emerald-500/15 text-emerald-300 ring-emerald-500/25",
+    kelas: "bg-sukses/15 text-sukses ring-sukses/25",
     ikon: CheckCircle2,
   },
   draft: {
@@ -52,14 +52,14 @@ export function StatusPenggunaBadge({
       className={cn(
         "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset",
         status === "aktif"
-          ? "bg-emerald-500/15 text-emerald-300 ring-emerald-500/25"
-          : "bg-red-500/15 text-red-300 ring-red-500/25",
+          ? "bg-sukses/15 text-sukses ring-sukses/25"
+          : "bg-destructive/15 text-destructive ring-destructive/25",
       )}
     >
       <span
         className={cn(
           "size-1.5 rounded-full",
-          status === "aktif" ? "bg-emerald-400" : "bg-red-400",
+          status === "aktif" ? "bg-sukses" : "bg-destructive",
         )}
       />
       {status === "aktif" ? "Aktif" : "Nonaktif"}

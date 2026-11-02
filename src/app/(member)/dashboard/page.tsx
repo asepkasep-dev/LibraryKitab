@@ -4,9 +4,9 @@ import {
   Bookmark,
   BookOpen,
   BookmarkCheck,
+  Compass,
   FileClock,
   NotebookPen,
-  Sparkles,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -174,7 +174,7 @@ export default async function DashboardPage() {
             label="Bookmark"
             nilai={formatAngka(statistik.totalBookmark)}
             keterangan={`${bookmark.length} kitab ditandai`}
-            tone="teal"
+            tone="goldLembut"
             ikon={<BookmarkCheck className="size-4" strokeWidth={1.75} />}
           />
           <StatCard
@@ -270,7 +270,7 @@ export default async function DashboardPage() {
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div className="space-y-1">
               <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.22em] text-gold/80">
-                <Sparkles className="size-3.5" strokeWidth={1.75} />
+                <Compass className="size-3.5" strokeWidth={1.75} />
                 Untuk Anda
               </span>
               <h2 id="rekomendasi" className="font-heading text-xl font-bold">

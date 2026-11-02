@@ -11,15 +11,15 @@ export function ProgresBar({
   nilai: number
   label?: string
   className?: string
-  tone?: "gold" | "teal" | "sukses"
+  tone?: "gold" | "goldLembut" | "sukses"
   size?: "default" | "thin"
 }) {
   const aman = Math.min(100, Math.max(0, nilai))
   const warna =
-    tone === "teal"
-      ? "bg-teal-400"
+    tone === "goldLembut"
+      ? "bg-gold-lembut"
       : tone === "sukses" || aman >= 100
-        ? "bg-emerald-400"
+        ? "bg-sukses"
         : "bg-gold"
 
   return (
@@ -68,16 +68,16 @@ export function StatCard({
   nilai: ReactNode
   keterangan?: string
   ikon?: ReactNode
-  tone?: "gold" | "teal" | "sukses" | "netral"
+  tone?: "gold" | "goldLembut" | "sukses" | "netral"
   className?: string
 }) {
   const aksen =
-    tone === "teal"
-      ? "text-teal-300 bg-teal-500/15 ring-teal-500/20"
-      : tone === "sukses"
-        ? "text-emerald-300 bg-emerald-500/15 ring-emerald-500/20"
-        : tone === "netral"
-          ? "text-sky-300 bg-sky-500/15 ring-sky-500/20"
+    tone === "sukses"
+      ? "text-sukses bg-sukses/15 ring-sukses/20"
+      : tone === "netral"
+        ? "text-muted-foreground bg-muted ring-white/15"
+        : tone === "goldLembut"
+          ? "text-gold-lembut bg-gold-lembut/15 ring-gold-lembut/25"
           : "text-gold bg-gold/15 ring-gold/20"
 
   return (

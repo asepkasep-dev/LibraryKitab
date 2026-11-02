@@ -40,8 +40,7 @@ export default function TentangPage() {
             {PENYELENGGARA}
           </span>
           <h1 className="text-4xl font-bold text-balance md:text-5xl">
-            Merawat kitab kuning dengan cara yang{" "}
-            <span className="gold-text">lebih mudah dijangkau</span>
+            Merawat kitab kuning dengan cara yang lebih mudah dijangkau
           </h1>
           <p className="text-arabic mx-auto max-w-2xl text-2xl leading-[1.9] text-gold/85">
             وَقُل رَّبِّ زِدْنِي عِلْمًا
@@ -72,8 +71,8 @@ export default function TentangPage() {
         <Reveal delay={0.08}>
           <Card className="h-full gap-3 p-7">
             <CardContent className="space-y-3 px-0">
-              <span className="grid size-11 place-items-center rounded-xl bg-teal-500/15 ring-1 ring-teal-500/25">
-                <Lightbulb className="size-5 text-teal-300" strokeWidth={1.75} />
+              <span className="grid size-11 place-items-center rounded-xl bg-gold/10 ring-1 ring-gold/20">
+                <Lightbulb className="size-5 text-gold/85" strokeWidth={1.75} />
               </span>
               <h2 className="font-heading text-xl font-semibold">Misi kami</h2>
               <ul className="space-y-2 text-sm leading-relaxed text-muted-foreground">

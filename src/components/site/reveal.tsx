@@ -1,6 +1,6 @@
 "use client"
 
-import { motion } from "framer-motion"
+import { motion, useReducedMotion } from "framer-motion"
 import type { ReactNode } from "react"
 
 /** Muncul dengan efek fade-in + slide-up saat digulir (Bab 4: Nuansa & Vibe). */
@@ -15,6 +15,14 @@ export function Reveal({
   className?: string
   as?: "div" | "section" | "li"
 }) {
+  // Pengguna yang memilih hemat gerak melihat konten tampil langsung, tanpa
+  // opacity nol yang menunggu animasi.
+  const hematGerak = useReducedMotion()
+  if (hematGerak) {
+    const Statis = as
+    return <Statis className={className}>{children}</Statis>
+  }
+
   const Comp = motion[as]
 
   return (

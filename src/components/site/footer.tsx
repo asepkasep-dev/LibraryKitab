@@ -68,11 +68,11 @@ export function Footer() {
 
           <div>
             <h2 className="font-heading text-sm font-semibold text-foreground">
-              Mode Demo
+              Ruang Akun
             </h2>
             <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-              Tahap 1 memakai data dummy, jadi area member dan pengelola dapat
-              dibuka tanpa akun.
+              Santri, ustadz, dan pengelola masuk memakai akun. Bookmark,
+              catatan, dan progres baca mengikuti akun Anda.
             </p>
             <ul className="mt-3 space-y-2">
               <li>

@@ -18,7 +18,7 @@ export default function AuthLayout({
           className="pointer-events-none absolute inset-0 opacity-40"
           style={{
             backgroundImage:
-              "radial-gradient(38rem 26rem at 20% 15%, hsl(43 74% 56% / 0.14), transparent 65%), radial-gradient(34rem 24rem at 85% 80%, hsl(172 60% 45% / 0.12), transparent 60%)",
+              "radial-gradient(38rem 26rem at 20% 15%, hsl(43 74% 56% / 0.14), transparent 65%), radial-gradient(34rem 24rem at 85% 80%, hsl(43 45% 42% / 0.16), transparent 60%)",
           }}
         />
         <Logo className="relative" href="/" />
@@ -29,7 +29,7 @@ export default function AuthLayout({
             طَرِيقًا إِلَى الْجَنَّةِ
           </p>
           <blockquote className="space-y-2 text-sm leading-relaxed text-muted-foreground">
-            <span className="mb-2 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-teal-300">
+            <span className="mb-2 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-gold/85">
               <Quote className="size-3.5" strokeWidth={1.75} />
               Catatan pengelola
             </span>

@@ -45,7 +45,7 @@ export function KelolaKategori({ barisAwal }: { barisAwal: EntitasBaris[] }) {
       label: "Slug",
       className: "min-w-36",
       sel: (row) => (
-        <code className="rounded-lg bg-white/5 px-2 py-1 font-mono text-xs text-teal-300">
+        <code className="rounded-lg bg-white/5 px-2 py-1 font-mono text-xs text-gold/85">
           {row.nilai.slug}
         </code>
       ),

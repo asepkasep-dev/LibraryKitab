@@ -84,7 +84,7 @@ export function SidebarShell({
             key={item.href}
             href={item.href}
             className={cn(
-              "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all",
+              "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
               aktif
                 ? area === "admin"
                   ? "bg-gold/15 text-gold ring-1 ring-gold/25"
@@ -97,11 +97,7 @@ export function SidebarShell({
               nama={item.icon}
               className={cn(
                 "size-4.5 shrink-0 transition-colors",
-                aktif
-                  ? area === "admin"
-                    ? "text-gold"
-                    : "text-teal-300"
-                  : "text-muted-foreground group-hover:text-foreground",
+                aktif ? "text-gold" : "text-muted-foreground group-hover:text-foreground",
               )}
             />
             <span className="truncate">{item.label}</span>
@@ -140,7 +136,7 @@ export function SidebarShell({
               "rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em]",
               area === "admin"
                 ? "bg-gold/15 text-gold ring-1 ring-gold/25"
-                : "bg-teal-500/15 text-teal-300 ring-1 ring-teal-500/20",
+                : "bg-gold/10 text-gold/85 ring-1 ring-gold/20",
             )}
           >
             {area === "admin" ? "Pengelola" : "Member"}
@@ -291,7 +287,7 @@ export function SidebarShell({
                 )}
                 <DropdownMenuSeparator />
                 <SignOutButton redirectUrl="/sign-in">
-                  <DropdownMenuItem className="text-red-300 focus:text-red-200">
+                  <DropdownMenuItem variant="destructive">
                     <LogOut className="size-4" strokeWidth={1.75} />
                     Keluar
                   </DropdownMenuItem>

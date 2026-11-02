@@ -47,7 +47,7 @@ function TombolToolbar({
           aria-pressed={aktif}
           onClick={onClick}
           className={cn(
-            "size-9 rounded-xl text-slate-200 hover:bg-white/10 hover:text-white",
+            "size-9 rounded-xl text-foreground hover:bg-white/10 hover:text-white",
             aktif && "bg-gold/15 text-gold hover:bg-gold/20 hover:text-gold",
             tertekan && "text-gold",
           )}
@@ -55,7 +55,7 @@ function TombolToolbar({
           {children}
         </Button>
       </TooltipTrigger>
-      <TooltipContent side="top" className="border-white/10 bg-slate-900">
+      <TooltipContent side="top" className="border-white/10 bg-popover">
         {label}
       </TooltipContent>
     </Tooltip>
@@ -162,12 +162,12 @@ export function ToolbarBaca({
               size="sm"
               onClick={onResetZoom}
               aria-label={`Zoom ${zoom} persen, kembali ke ${ZOOM_BAKU} persen`}
-              className="h-9 w-16 rounded-xl font-heading text-sm font-semibold tabular-nums text-slate-200 hover:bg-white/10 hover:text-white"
+              className="h-9 w-16 rounded-xl font-heading text-sm font-semibold tabular-nums text-foreground hover:bg-white/10 hover:text-white"
             >
               {zoom}%
             </Button>
           </TooltipTrigger>
-          <TooltipContent side="top" className="border-white/10 bg-slate-900">
+          <TooltipContent side="top" className="border-white/10 bg-popover">
             Rentang {ZOOM_LANGKAH[0]}% s.d. {ZOOM_LANGKAH[ZOOM_LANGKAH.length - 1]}%,
             klik untuk mengatur ulang
           </TooltipContent>

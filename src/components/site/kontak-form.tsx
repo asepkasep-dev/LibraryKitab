@@ -56,8 +56,8 @@ export function KontakForm() {
     return (
       <Card className="gap-0 p-0">
         <CardContent className="space-y-4 p-8 text-center">
-          <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-emerald-500/15 ring-1 ring-emerald-500/25">
-            <CheckCircle2 className="size-7 text-emerald-300" strokeWidth={1.75} />
+          <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-sukses/15 ring-1 ring-sukses/25">
+            <CheckCircle2 className="size-7 text-sukses" strokeWidth={1.75} />
           </span>
           <div className="space-y-2">
             <h2 className="font-heading text-xl font-semibold">
@@ -153,7 +153,7 @@ export function KontakForm() {
             <label className="flex cursor-pointer items-start gap-3 text-sm text-muted-foreground">
               <input
                 type="checkbox"
-                className="mt-0.5 size-4 shrink-0 rounded border-white/20 bg-white/5 accent-[hsl(43,74%,56%)]"
+                className="mt-0.5 size-4 shrink-0 rounded border-white/20 bg-white/5 accent-gold"
                 {...register("setujui")}
               />
               <span>
@@ -212,5 +212,5 @@ function Field({
 }
 
 function FieldError({ children }: { children: React.ReactNode }) {
-  return <p className="text-xs font-medium text-red-400">{children}</p>
+  return <p className="text-xs font-medium text-destructive">{children}</p>
 }

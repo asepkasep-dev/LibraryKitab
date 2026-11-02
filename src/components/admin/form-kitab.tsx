@@ -9,9 +9,9 @@ import {
   AlertTriangle,
   CircleCheck,
   FileText,
+  Globe,
   LoaderCircle,
   Save,
-  Sparkles,
   Trash2,
   Upload,
 } from "lucide-react"
@@ -238,10 +238,10 @@ export function FormKitab({
             <Label htmlFor="judulLatin">Judul Latin *</Label>
             <Input id="judulLatin" className="h-10" {...register("judulLatin")} />
             <p className="text-xs text-muted-foreground">
-              URL reader: <span className="font-mono text-teal-300">/baca/{slugPratinjau}</span>
+              URL reader: <span className="font-mono text-gold/85">/baca/{slugPratinjau}</span>
             </p>
             {errors.judulLatin && (
-              <p className="text-xs text-red-400">{errors.judulLatin.message}</p>
+              <p className="text-xs text-destructive">{errors.judulLatin.message}</p>
             )}
           </div>
 
@@ -253,7 +253,7 @@ export function FormKitab({
               {...register("judulArab")}
             />
             {errors.judulArab && (
-              <p className="text-xs text-red-400">{errors.judulArab.message}</p>
+              <p className="text-xs text-destructive">{errors.judulArab.message}</p>
             )}
           </div>
 
@@ -278,7 +278,7 @@ export function FormKitab({
               )}
             />
             {errors.kategoriId && (
-              <p className="text-xs text-red-400">{errors.kategoriId.message}</p>
+              <p className="text-xs text-destructive">{errors.kategoriId.message}</p>
             )}
           </div>
 
@@ -303,7 +303,7 @@ export function FormKitab({
               )}
             />
             {errors.pengarangId && (
-              <p className="text-xs text-red-400">{errors.pengarangId.message}</p>
+              <p className="text-xs text-destructive">{errors.pengarangId.message}</p>
             )}
           </div>
 
@@ -340,7 +340,7 @@ export function FormKitab({
               <Label htmlFor="tahunTerbit">Tahun terbit *</Label>
               <Input id="tahunTerbit" className="h-10" {...register("tahunTerbit")} />
               {errors.tahunTerbit && (
-                <p className="text-xs text-red-400">{errors.tahunTerbit.message}</p>
+                <p className="text-xs text-destructive">{errors.tahunTerbit.message}</p>
               )}
             </div>
             <div className="space-y-1.5">
@@ -359,7 +359,7 @@ export function FormKitab({
                   : "Diisi otomatis begitu berkas PDF diunggah."}
               </p>
               {errors.jumlahHalaman && (
-                <p className="text-xs text-red-400">{errors.jumlahHalaman.message}</p>
+                <p className="text-xs text-destructive">{errors.jumlahHalaman.message}</p>
               )}
             </div>
           </div>
@@ -378,7 +378,7 @@ export function FormKitab({
             40 s.d. 2.000 karakter. Teks ini tampil pada kartu katalog dan halaman detail.
           </p>
           {errors.deskripsi && (
-            <p className="text-xs text-red-400">{errors.deskripsi.message}</p>
+            <p className="text-xs text-destructive">{errors.deskripsi.message}</p>
           )}
         </div>
       </section>
@@ -450,7 +450,7 @@ export function FormKitab({
           <div className="surface-inset space-y-3 p-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-2">
-                <FileText className="size-4 shrink-0 text-teal-300" strokeWidth={1.75} />
+                <FileText className="size-4 shrink-0 text-gold/85" strokeWidth={1.75} />
                 <p className="truncate text-sm font-medium">{berkas.name}</p>
                 <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
                   {formatUkuranBerkas(berkas.size)}
@@ -480,10 +480,10 @@ export function FormKitab({
             )}
 
             {progres === 100 && tersimpan && (
-              <Alert className="border-emerald-500/25 bg-emerald-500/10">
+              <Alert className="border-sukses/25 bg-sukses/15">
                 <CircleCheck className="size-4" strokeWidth={1.75} />
-                <AlertTitle className="text-emerald-200">Unggahan selesai</AlertTitle>
-                <AlertDescription className="text-emerald-100/80">
+                <AlertTitle className="text-sukses">Unggahan selesai</AlertTitle>
+                <AlertDescription className="text-sukses/80">
                   {tersimpan.path} · {tersimpan.halaman} halaman terbaca parser dan
                   jumlah halaman sudah terisikan.
                 </AlertDescription>
@@ -533,7 +533,7 @@ export function FormKitab({
                 type="radio"
                 value={item.nilai}
                 {...register("status")}
-                className="mt-1 size-4 accent-[hsl(43_74%_56%)]"
+                className="mt-1 size-4 accent-gold"
               />
               <span className="min-w-0">
                 <span className="block text-sm font-medium">{item.judul}</span>
@@ -546,13 +546,13 @@ export function FormKitab({
         </div>
 
         {status === "published" && (
-          <p className="inline-flex items-center gap-2 text-xs text-teal-300">
-            <Sparkles className="size-3.5" strokeWidth={1.75} />
+          <p className="inline-flex items-center gap-2 text-xs text-gold/85">
+            <Globe className="size-3.5" strokeWidth={1.75} />
             Kitab akan langsung dapat dibaca publik melalui tautan reader.
           </p>
         )}
         {errors.status && (
-          <p className="text-xs text-red-400">{errors.status.message}</p>
+          <p className="text-xs text-destructive">{errors.status.message}</p>
         )}
       </section>
 

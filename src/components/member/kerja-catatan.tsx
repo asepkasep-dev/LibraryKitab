@@ -212,7 +212,7 @@ export function KerjaCatatan({ awal }: { awal: BarisCatatan[] }) {
                 </Link>
               </div>
 
-              <p className="flex-1 text-sm leading-relaxed whitespace-pre-line text-slate-200">
+              <p className="flex-1 text-sm leading-relaxed whitespace-pre-line text-foreground">
                 {row.catatan.isi}
               </p>
 

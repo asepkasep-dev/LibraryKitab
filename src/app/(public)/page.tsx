@@ -1,12 +1,12 @@
 import Link from "next/link"
 import {
   ArrowRight,
+  BookOpen,
   BookOpenCheck,
   Bookmark,
   GraduationCap,
   NotebookPen,
   ShieldCheck,
-  Sparkles,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -44,7 +44,7 @@ export default async function BerandaPage() {
           className="pointer-events-none absolute inset-0 -z-10"
           style={{
             backgroundImage:
-              "radial-gradient(46rem 30rem at 18% 8%, hsl(43 74% 56% / 0.16), transparent 62%), radial-gradient(40rem 28rem at 88% 22%, hsl(172 60% 45% / 0.13), transparent 60%)",
+              "radial-gradient(46rem 30rem at 18% 8%, hsl(43 74% 56% / 0.16), transparent 62%), radial-gradient(40rem 28rem at 88% 22%, hsl(43 45% 42% / 0.18), transparent 60%)",
           }}
         />
         <div
@@ -55,15 +55,13 @@ export default async function BerandaPage() {
         <div className="mx-auto grid w-full max-w-7xl gap-14 px-4 sm:px-6 lg:grid-cols-[1.15fr_0.85fr] lg:items-center lg:px-8">
           <div className="space-y-8">
             <span className="inline-flex items-center gap-2 rounded-full border border-gold/25 bg-gold/10 px-3 py-1 text-xs font-semibold text-gold">
-              <Sparkles className="size-3.5" strokeWidth={1.75} />
+              <BookOpen className="size-3.5" strokeWidth={1.75} />
               Assalamu&apos;alaikum, selamat datang di perpustakaan kitab
             </span>
 
             <div className="space-y-5">
               <h1 className="text-4xl leading-[1.15] font-bold text-balance md:text-5xl">
-                Kitab kuning dalam genggaman,{" "}
-                <span className="gold-text">baca sampai halaman terakhir</span>{" "}
-                Anda.
+                Kitab kuning dalam genggaman, baca sampai halaman terakhir Anda.
               </h1>
               <p className="max-w-xl text-base leading-relaxed text-muted-foreground">
                 Jelajahi katalog turats, baca langsung di ponsel tanpa mengunduh
@@ -155,7 +153,7 @@ export default async function BerandaPage() {
             ))}
             <Card className="absolute -bottom-2 right-0 z-10 w-[74%] gap-2 p-4">
               <CardContent className="space-y-2 px-0">
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-teal-300">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gold/85">
                   Sedang dibaca
                 </p>
                 <p className="font-heading text-lg font-bold">
@@ -310,7 +308,7 @@ export default async function BerandaPage() {
             />
             <CardContent className="flex flex-col items-start gap-6 p-8 md:flex-row md:items-center md:justify-between md:p-12">
               <div className="max-w-xl space-y-3">
-                <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-teal-300">
+                <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-gold/85">
                   <GraduationCap className="size-4" strokeWidth={1.75} />
                   Untuk santri & ustadz
                 </span>
@@ -323,7 +321,7 @@ export default async function BerandaPage() {
                   pertama.
                 </p>
                 <p className="inline-flex items-center gap-2 text-xs text-muted-foreground">
-                  <ShieldCheck className="size-4 text-emerald-300" strokeWidth={1.75} />
+                  <ShieldCheck className="size-4 text-sukses" strokeWidth={1.75} />
                   Catatan Anda bersifat privat dan hanya tampil di akun Anda.
                 </p>
               </div>

@@ -62,7 +62,7 @@ export default async function UbahKitabPage({ params }: HalamanProps) {
           ID kitab: <span className="font-mono text-foreground">{kitab.id}</span>
         </span>
         <span>
-          Slug: <span className="font-mono text-teal-300">{kitab.slug}</span>
+          Slug: <span className="font-mono text-gold/85">{kitab.slug}</span>
         </span>
         <span>
           Berkas saat ini:{" "}

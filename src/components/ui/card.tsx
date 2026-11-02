@@ -18,7 +18,7 @@ function Card({
       className={cn(
         "group/card flex flex-col gap-(--card-spacing) overflow-hidden rounded-2xl border border-white/10 bg-white/5 py-(--card-spacing) text-sm text-card-foreground backdrop-blur-xl shadow-sm [--card-spacing:--spacing(4)] has-data-[slot=card-footer]:pb-0 data-[size=sm]:[--card-spacing:--spacing(3)] data-[size=sm]:has-data-[slot=card-footer]:pb-0",
         interactive &&
-          "transition-all duration-200 hover:-translate-y-1 hover:border-[hsl(43_74%_56%/0.3)] hover:shadow-lg hover:shadow-amber-500/10",
+          "transition-[transform,box-shadow] duration-200 hover:-translate-y-1 hover:border-gold/30 hover:shadow-lg hover:shadow-gold/10",
         className
       )}
       {...props}

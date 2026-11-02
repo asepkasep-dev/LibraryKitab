@@ -112,7 +112,7 @@ export function FormProfil({ pengguna, jumlahBookmark, jumlahCatatan, jumlahRiwa
               <Label htmlFor="namaLengkap">Nama lengkap</Label>
               <Input id="namaLengkap" className="h-10" {...register("namaLengkap")} />
               {errors.namaLengkap && (
-                <p className="text-xs text-red-400">{errors.namaLengkap.message}</p>
+                <p className="text-xs text-destructive">{errors.namaLengkap.message}</p>
               )}
             </div>
 
@@ -120,7 +120,7 @@ export function FormProfil({ pengguna, jumlahBookmark, jumlahCatatan, jumlahRiwa
               <Label htmlFor="kelas">Kelas / liwan</Label>
               <Input id="kelas" className="h-10" {...register("kelas")} />
               {errors.kelas && (
-                <p className="text-xs text-red-400">{errors.kelas.message}</p>
+                <p className="text-xs text-destructive">{errors.kelas.message}</p>
               )}
             </div>
 
@@ -142,7 +142,7 @@ export function FormProfil({ pengguna, jumlahBookmark, jumlahCatatan, jumlahRiwa
                 )}
               />
               {errors.jenisPeran && (
-                <p className="text-xs text-red-400">{errors.jenisPeran.message}</p>
+                <p className="text-xs text-destructive">{errors.jenisPeran.message}</p>
               )}
             </div>
 
@@ -177,7 +177,7 @@ export function FormProfil({ pengguna, jumlahBookmark, jumlahCatatan, jumlahRiwa
               min={14}
               max={24}
               step={1}
-              className="w-full accent-[hsl(43_74%_56%)]"
+              className="w-full accent-gold"
               {...register("fontSizePreferensi", { valueAsNumber: true })}
             />
             <div className="flex justify-between text-[11px] text-muted-foreground">
@@ -185,7 +185,7 @@ export function FormProfil({ pengguna, jumlahBookmark, jumlahCatatan, jumlahRiwa
               <span>Besar (24 px)</span>
             </div>
             {errors.fontSizePreferensi && (
-              <p className="text-xs text-red-400">{errors.fontSizePreferensi.message}</p>
+              <p className="text-xs text-destructive">{errors.fontSizePreferensi.message}</p>
             )}
           </div>
 
@@ -238,15 +238,15 @@ export function FormProfil({ pengguna, jumlahBookmark, jumlahCatatan, jumlahRiwa
             <div
               className={
                 modeReader === "sepia"
-                  ? "rounded-xl bg-[hsl(36_32%_16%)] p-4"
-                  : "rounded-xl bg-[#f8f5ec] p-4 text-slate-800"
+                  ? "rounded-xl bg-kertas-sepia p-4 text-kertas/85"
+                  : "rounded-xl bg-kertas p-4 text-kertas-foreground"
               }
               style={{ fontSize: `${Number(ukuranHuruf)}px`, lineHeight: 1.9 }}
             >
               <p className="text-arabic text-[1.4em] leading-[2]">
                 اِعْلَمْ أَنَّ الطَّلَبَ لَا يَتِمُّ إِلَّا بِصِدْقِ الْمُتَابَعَةِ
               </p>
-              <p className={modeReader === "sepia" ? "text-slate-300" : "text-slate-600"}>
+              <p className={modeReader === "sepia" ? "text-kertas/70" : "text-kertas-foreground/75"}>
                 Ketahuilah bahwa menuntut ilmu tidak sempurna kecuali dengan sungguh-sungguh
                 mengikuti guru.
               </p>
@@ -269,7 +269,7 @@ export function FormProfil({ pengguna, jumlahBookmark, jumlahCatatan, jumlahRiwa
             </span>
           )}
           {tersimpanPada && !isDirty && (
-            <span className="inline-flex items-center gap-1.5 text-xs text-emerald-300">
+            <span className="inline-flex items-center gap-1.5 text-xs text-sukses">
               <Check className="size-4" strokeWidth={1.75} />
               Tersimpan pada {new Date(tersimpanPada).toLocaleTimeString("id-ID")}
             </span>
@@ -296,7 +296,7 @@ export function FormProfil({ pengguna, jumlahBookmark, jumlahCatatan, jumlahRiwa
           </div>
           <Separator className="bg-white/10" />
           <p className="inline-flex items-start gap-2 text-xs leading-relaxed text-muted-foreground">
-            <ShieldCheck className="mt-0.5 size-4 shrink-0 text-teal-300" strokeWidth={1.75} />
+            <ShieldCheck className="mt-0.5 size-4 shrink-0 text-gold/85" strokeWidth={1.75} />
             Nonaktifkan akun hanya melalui panel pengelola. Santri yang dinonaktifkan tidak
             dapat membuka bookmark dan catatannya sampai akun diaktifkan lagi.
           </p>

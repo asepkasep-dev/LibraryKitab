@@ -137,9 +137,9 @@ export function HalamanPdf({
         </p>
       )}
       {status === "gagal" && (
-        <div className="absolute inset-x-0 top-1/4 mx-auto flex max-w-md flex-col items-center gap-3 rounded-2xl border border-amber-500/25 bg-amber-500/5 px-6 py-8 text-center">
-          <AlertTriangle className="size-7 text-amber-300" strokeWidth={1.75} />
-          <h2 className="font-heading text-base font-semibold text-amber-200">
+        <div className="absolute inset-x-0 top-1/4 mx-auto flex max-w-md flex-col items-center gap-3 rounded-2xl border border-peringatan/25 bg-peringatan/5 px-6 py-8 text-center">
+          <AlertTriangle className="size-7 text-peringatan" strokeWidth={1.75} />
+          <h2 className="font-heading text-base font-semibold text-peringatan">
             Halaman kitab belum dapat dimuat
           </h2>
           <p className="text-sm leading-relaxed text-muted-foreground">

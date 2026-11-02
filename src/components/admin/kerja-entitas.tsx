@@ -384,7 +384,7 @@ function FormulirEntitas({
               {item.petunjuk && (
                 <p className="text-xs text-muted-foreground">{item.petunjuk}</p>
               )}
-              {error && <p className="text-xs text-red-400">{error}</p>}
+              {error && <p className="text-xs text-destructive">{error}</p>}
             </div>
           )
         }
@@ -412,7 +412,7 @@ function FormulirEntitas({
               {item.petunjuk && (
                 <p className="text-xs text-muted-foreground">{item.petunjuk}</p>
               )}
-              {error && <p className="text-xs text-red-400">{error}</p>}
+              {error && <p className="text-xs text-destructive">{error}</p>}
             </div>
           )
         }
@@ -429,7 +429,7 @@ function FormulirEntitas({
             {item.petunjuk && item.jenis !== "teks" && (
               <p className="text-xs text-muted-foreground">{item.petunjuk}</p>
             )}
-            {error && <p className="text-xs text-red-400">{error}</p>}
+            {error && <p className="text-xs text-destructive">{error}</p>}
           </div>
         )
       })}

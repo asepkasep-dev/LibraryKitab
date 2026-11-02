@@ -64,7 +64,7 @@ function ChipHalaman({
         "grid h-7 min-w-9 shrink-0 place-items-center rounded-lg px-1.5 font-heading text-xs font-semibold tabular-nums ring-1 ring-inset transition-colors",
         aktif
           ? "bg-gold/20 text-gold ring-gold/30"
-          : "bg-white/5 text-slate-300 ring-white/10 hover:bg-white/10 hover:text-white",
+          : "bg-white/5 text-muted-foreground ring-white/10 hover:bg-white/10 hover:text-white",
       )}
     >
       {nomor}
@@ -417,7 +417,7 @@ export function PanelSamping({
                         className="min-h-24"
                       />
                     ) : (
-                      <p className="text-sm leading-relaxed whitespace-pre-line text-slate-200">
+                      <p className="text-sm leading-relaxed whitespace-pre-line text-foreground">
                         {item.isi}
                       </p>
                     )}

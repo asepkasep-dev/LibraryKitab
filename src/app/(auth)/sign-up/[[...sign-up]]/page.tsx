@@ -27,7 +27,7 @@ export default function DaftarPage() {
   return (
     <div className="space-y-6">
       <header className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-teal-300">
+        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-gold/85">
           Keanggotaan gratis
         </p>
         <h1 className="font-heading text-2xl font-bold text-balance sm:text-3xl">

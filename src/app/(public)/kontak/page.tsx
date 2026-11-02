@@ -69,7 +69,7 @@ export default function KontakPage() {
 
           <Card className="gap-3 p-6">
             <CardContent className="space-y-2.5 px-0">
-              <MessageSquare className="size-5 text-teal-300" strokeWidth={1.75} />
+              <MessageSquare className="size-5 text-gold/85" strokeWidth={1.75} />
               <h2 className="font-heading text-base font-semibold">
                 Sedang membaca kitab?
               </h2>

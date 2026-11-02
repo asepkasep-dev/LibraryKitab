@@ -110,7 +110,7 @@ export default async function RiwayatPage() {
                     </TableCell>
                     <TableCell>
                       {sudahSelesai ? (
-                        <Badge className="gap-1.5 border-emerald-500/25 bg-emerald-500/15 text-emerald-300">
+                        <Badge className="gap-1.5 border-sukses/25 bg-sukses/15 text-sukses">
                           <CheckCircle2 className="size-3.5" strokeWidth={1.75} />
                           Selesai
                         </Badge>

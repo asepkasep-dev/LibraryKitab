@@ -1,6 +1,6 @@
 /**
  * Tema Clerk agar formulir masuk/daftar menyatu dengan desain dark premium
- * Bab 4 (navy, emas, teal) tanpa memakai CSS global Clerk yang aslinya terang.
+ * Bab 4 (navy dan emas) tanpa memakai CSS global Clerk yang aslinya terang.
  */
 export const temaClerk = {
   variables: {

@@ -73,10 +73,10 @@ export function KitabCover({
               width="16"
               height="16"
               fill="none"
-              stroke="hsl(43 74% 70%)"
+              stroke="var(--gold-hover)"
               strokeWidth="0.8"
             />
-            <circle cx="14" cy="14" r="2.2" fill="hsl(43 74% 70%)" />
+            <circle cx="14" cy="14" r="2.2" fill="var(--gold-hover)" />
           </pattern>
         </defs>
         <rect width="100%" height="100%" fill={`url(#ornamen-${kitab.slug})`} />

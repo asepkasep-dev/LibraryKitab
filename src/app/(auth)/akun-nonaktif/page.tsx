@@ -30,10 +30,10 @@ export default async function AkunNonaktifPage() {
   return (
     <div className="space-y-6">
       <header className="space-y-3">
-        <span className="grid size-12 place-items-center rounded-2xl bg-red-500/15 ring-1 ring-red-500/25">
-          <ShieldOff className="size-6 text-red-300" strokeWidth={1.75} />
+        <span className="grid size-12 place-items-center rounded-2xl bg-destructive/15 ring-1 ring-destructive/25">
+          <ShieldOff className="size-6 text-destructive" strokeWidth={1.75} />
         </span>
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-red-300/90">
+        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-destructive/90">
           Akses anggota dibatasi
         </p>
         <h1 className="font-heading text-2xl font-bold text-balance sm:text-3xl">
@@ -51,7 +51,7 @@ export default async function AkunNonaktifPage() {
         <ul className="space-y-2">
           {DIBLOKIR.map((item) => (
             <li key={item} className="flex items-start gap-2.5 text-sm text-muted-foreground">
-              <Ban className="mt-0.5 size-4 shrink-0 text-red-300" strokeWidth={1.75} />
+              <Ban className="mt-0.5 size-4 shrink-0 text-destructive" strokeWidth={1.75} />
               {item}
             </li>
           ))}
@@ -63,7 +63,7 @@ export default async function AkunNonaktifPage() {
         <ul className="space-y-2">
           {TETAP_TERBUKA.map((item) => (
             <li key={item} className="flex items-start gap-2.5 text-sm text-muted-foreground">
-              <Check className="mt-0.5 size-4 shrink-0 text-emerald-300" strokeWidth={2} />
+              <Check className="mt-0.5 size-4 shrink-0 text-sukses" strokeWidth={2} />
               {item}
             </li>
           ))}

@@ -83,7 +83,7 @@ export default async function AdminDashboardPage() {
             label="Menunggu tayang"
             nilai={formatAngka(s.totalDraf)}
             keterangan={`${formatAngka(s.totalArsip)} kitab diarsipkan`}
-            tone="teal"
+            tone="goldLembut"
             ikon={<Layers className="size-4" strokeWidth={1.75} />}
           />
           <StatCard
@@ -183,7 +183,7 @@ export default async function AdminDashboardPage() {
                       {row.jumlah} kitab
                     </span>
                   </div>
-                  <ProgresBar nilai={Math.round((row.jumlah / maksimumFan) * 100)} tone="teal" size="thin" />
+                  <ProgresBar nilai={Math.round((row.jumlah / maksimumFan) * 100)} tone="goldLembut" size="thin" />
                 </li>
               ))}
             </ul>
