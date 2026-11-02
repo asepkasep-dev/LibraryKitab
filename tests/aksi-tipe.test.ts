@@ -179,3 +179,38 @@ test("jalur teknis pesanAman mengembalikan pesan baku walau pesan aslinya memuat
   assert.match(ditulis.join(" "), /\[email\]/)
 })
 
+// ---------- keputusan keamanan 9: batas antara bocor teknis dan panduan kelola ----------
+//
+// Kedua test di bawah mengunci perilaku yang SUDAH ada, bukan meminta perubahan.
+// Nama variabel Bunny tidak boleh disaring: daftar itu sudah ikut tertulis di
+// .env.example dan satu-satunya pihak yang bisa melihat pesan ini adalah
+// pengelola yang lolos butuhAdminAksi. Menyaringnya hanya menghapus langkah
+// perbaikan yang bisa ditindaklanjuti.
+
+test("pesanAman mempertahankan panduan konfigurasi Bunny untuk pengelola", (t) => {
+  const ditulis = tangkapConsoleError(t)
+  const panduan = [
+    "BUNNY_CDN_HOSTNAME belum diisi, jadi URL berkas tidak dapat dibentuk.",
+    "Konfigurasi Bunny Storage belum lengkap. Isi BUNNY_STORAGE_ZONE_NAME dan BUNNY_STORAGE_ACCESS_KEY.",
+    "BUNNY_STORAGE_ACCESS_KEY belum diisi (minimal 16 karakter), jadi bukti unggahan tidak dapat dibuat.",
+    "Bunny menolak unggahan dengan status 403. Periksa konfigurasi storage zone.",
+  ]
+  for (const pesan of panduan) {
+    assert.equal(pesanAman(new Error(pesan), BAKU), pesan)
+  }
+  // Bukan kegagalan teknis: jangan menambah baris log untuk pesan konfigurasi.
+  assert.deepEqual(ditulis, [])
+})
+
+test("balasan vendor mentah dan kegagalan jaringan tetap disaring", (t) => {
+  tangkapConsoleError(t)
+  const mentah = [
+    new TypeError("fetch failed"),
+    new Error("bunnycdn response 500: <html><body>Gateway Timeout</body></html>"),
+    Object.assign(new Error("zone pdf-kitabku menolak AccessKey"), { name: "BunnyError" }),
+  ]
+  for (const error of mentah) {
+    assert.equal(pesanAman(error, BAKU), BAKU, `Seharusnya disaring: ${error.message}`)
+  }
+})
+

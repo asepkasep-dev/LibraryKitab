@@ -50,6 +50,8 @@ const D = {
   hapusIsi: [] as string[],
   dipakaiKitabLain: false,
   hapusGagal: false,
+  /** Path yang dilepas dari cache halaman oleh aksi, tercatat urut. */
+  revalid: [] as string[],
 }
 
 function aturUlang() {
@@ -65,7 +67,22 @@ function aturUlang() {
   D.hapusIsi = []
   D.dipakaiKitabLain = false
   D.hapusGagal = false
+  D.revalid = []
 }
+
+/**
+ * Daftar yang semestinya disegarkan sebuah aksi tulis yang berhasil. Dua
+ * pertamanya (`/` dan `/katalog`) diprerender saat build tanpa membaca cookie,
+ * jadi hanya `revalidatePath` yang membuat angka ringkasan dan daftar tayang
+ * ikut berubah; sisanya alamat kitab itu sendiri.
+ */
+const harapanSegarkan = (slug: string) => [
+  "/",
+  "/katalog",
+  "/admin/kitab",
+  `/kitab/${slug}`,
+  `/baca/${slug}`,
+]
 
 // Semua mock didaftarkan sekali, sebelum modul aksi diimpor, karena tsx
 // mengemas file test sebagai CJS sehingga `await` di puncak tidak tersedia.
@@ -128,7 +145,11 @@ async function daftarkanMock() {
   })
 
   mock.module("next/cache", {
-    namedExports: { revalidatePath: () => undefined },
+    namedExports: {
+      revalidatePath: (path: string) => {
+        D.revalid.push(path)
+      },
+    },
   })
 }
 
@@ -139,6 +160,7 @@ type ModulAksi = {
     berkas?: { tanda?: string }
   ) => Promise<HasilAksi>
   gantiStatusKitab: (id: string, status: KitabInput["status"]) => Promise<HasilAksi>
+  hapusKitab: (id: string) => Promise<HasilAksi>
 }
 let penyiapan: Promise<void> | null = null
 async function aksi(): Promise<ModulAksi> {
@@ -188,6 +210,11 @@ function metaUji(ubah: Partial<MetaBerkasPdf> = {}): MetaBerkasPdf {
 /** Kunci HMAC dan hostname CDN dibaca saat fungsi dipanggil, jadi diisi lebih dulu. */
 process.env.BUNNY_STORAGE_ACCESS_KEY = KUNCI_UJI
 process.env.BUNNY_CDN_HOSTNAME = HOST_UJI
+// Masa berlaku bukti dipatok ke nilai baku produksi. Tanpa patokan, test
+// "bukti kedaluwarsa ditolak" berubah makna mengikuti shell yang menjalankan
+// `npm test`, bukan mengikuti kode: TTL panjang membuatnya lulus-tanji, TTL
+// pendek membuat semua bukti dianggap basi.
+process.env.TANDA_BERKAS_MASA_DETIK = "10800"
 
 /** Pesan driver sengaja diuji; log servernya tidak perlu memenuhi output test. */
 async function tanpaLog<T>(jalankan: () => Promise<T>) {
@@ -451,4 +478,48 @@ test("ganti status sah tercatat dengan jejak admin", async () => {
       },
     },
   ])
+})
+
+/* ----------------------- penyegaran cache halaman ----------------------- */
+
+test("kitab tersimpan: halaman yang diprerender ikut dilepas dari cache", async () => {
+  aturUlang()
+  const hasil = await (await aksi()).simpanKitab(null, inputKitab({ status: "published" }), {
+    tanda: buatTandaBerkas(metaUji()),
+  })
+  assert.equal(hasil.ok, true)
+  assert.deepEqual(D.revalid, harapanSegarkan("tafsir-al-jalalain"))
+})
+
+test("kitab ditarik dari tayang: katalog dan alamat baca disegarkan", async () => {
+  aturUlang()
+  D.kitab = barisKitab({ status: "published" })
+  const hasil = await (await aksi()).gantiStatusKitab(ID_KITAB, "draft")
+  assert.equal(hasil.ok, true)
+  assert.deepEqual(D.revalid, harapanSegarkan("tafsir-al-jalalain"))
+})
+
+test("kitab dihapus: alamat lama kitab itu ikut disegarkan", async () => {
+  aturUlang()
+  D.kitab = barisKitab({ slug: "kitab-yang-dihapus" })
+  const hasil = await (await aksi()).hapusKitab(ID_KITAB)
+  assert.equal(hasil.ok, true)
+  assert.deepEqual(D.revalid, harapanSegarkan("kitab-yang-dihapus"))
+})
+
+test("aksi yang ditolak tidak menyegarkan satu halaman pun", async () => {
+  aturUlang()
+  const hasil = await (await aksi()).simpanKitab("bukan-uuid", inputKitab())
+  assert.equal(hasil.ok, false)
+  assert.deepEqual(D.revalid, [])
+})
+
+test("penolakan bukti unggah tidak menyegarkan halaman", async () => {
+  aturUlang()
+  D.kitab = barisKitab()
+  const hasil = await (await aksi()).simpanKitab(ID_KITAB, inputKitab(), {
+    tanda: buatTandaBerkas(metaUji({ kitabId: ID_KITAB_LAIN })),
+  })
+  assert.equal(hasil.ok, false)
+  assert.deepEqual(D.revalid, [])
 })

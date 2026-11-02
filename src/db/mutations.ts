@@ -115,8 +115,13 @@ export async function ubahRolePengguna(
   role: Role,
   log: Omit<LogIsian, "targetId">
 ) {
-  await jalankanDenganLog(
-    db.update(users).set({ role, updatedAt: new Date() }).where(eq(users.id, id)),
+  await ubahDenganLog(
+    "Pengguna",
+    db
+      .update(users)
+      .set({ role, updatedAt: new Date() })
+      .where(eq(users.id, id))
+      .returning({ id: users.id }),
     { ...log, targetId: id }
   )
 }
@@ -126,8 +131,13 @@ export async function ubahStatusPengguna(
   status: StatusPengguna,
   log: Omit<LogIsian, "targetId">
 ) {
-  await jalankanDenganLog(
-    db.update(users).set({ status, updatedAt: new Date() }).where(eq(users.id, id)),
+  await ubahDenganLog(
+    "Pengguna",
+    db
+      .update(users)
+      .set({ status, updatedAt: new Date() })
+      .where(eq(users.id, id))
+      .returning({ id: users.id }),
     { ...log, targetId: id }
   )
 }
@@ -141,9 +151,10 @@ export async function hapusPenggunaByClerkId(clerkId: string) {
 /* ------------------------------ Kategori (fan) ----------------------------- */
 
 /**
- * Semua tulis entitas menerima jejak audit dan mengirimnya lewat
- * `jalankanDenganLog`: satu request Neon yang dieksekusi dalam satu transaksi,
- * supaya tidak ada perubahan tanpa jejak, atau jejak tanpa perubahan.
+ * Semua tulis entitas menerima jejak audit dan mengirimnya lewat jalur ber-jejak
+ * (`jalankanDenganLog`, atau `ubahDenganLog` untuk UPDATE): satu request Neon
+ * yang dieksekusi dalam satu transaksi, supaya tidak ada perubahan tanpa jejak,
+ * atau jejak tanpa perubahan.
  */
 export async function buatKategori(
   input: KategoriInput,
@@ -164,11 +175,13 @@ export async function ubahKategori(
   input: KategoriInput,
   log: Omit<LogIsian, "targetId">
 ): Promise<string> {
-  await jalankanDenganLog(
+  await ubahDenganLog(
+    "Kategori",
     db
       .update(kategori)
       .set({ nama: input.nama, slug: input.slug, deskripsi: input.deskripsi })
-      .where(eq(kategori.id, id)),
+      .where(eq(kategori.id, id))
+      .returning({ id: kategori.id }),
     { ...log, targetId: id }
   )
   return id
@@ -203,7 +216,8 @@ export async function ubahPengarang(
   input: PengarangInput,
   log: Omit<LogIsian, "targetId">
 ): Promise<string> {
-  await jalankanDenganLog(
+  await ubahDenganLog(
+    "Pengarang",
     db
       .update(pengarang)
       .set({
@@ -212,7 +226,8 @@ export async function ubahPengarang(
         tahunWafat: input.tahunWafat,
         biografiSingkat: input.biografiSingkat,
       })
-      .where(eq(pengarang.id, id)),
+      .where(eq(pengarang.id, id))
+      .returning({ id: pengarang.id }),
     { ...log, targetId: id }
   )
   return id
@@ -278,6 +293,26 @@ async function jalankanDenganLog<V extends BatchItem<"pg">>(
   return hasil
 }
 
+/**
+ * Pasangan UPDATE + jejak audit yang menuntut bukti. Baris sasaran bisa hilang
+ * di antara pembacaan awal aksi dan transaksi ini. RETURNING wajib: drizzle
+ * hanya memetakan pernyataan yang memintanya menjadi daftar baris, jadi tanpa
+ * RETURNING tidak ada yang bisa membedakan "satu baris berubah" dari "nol baris
+ * kena" dan klien diberi pesan tersimpan untuk perubahan yang kosong. Jejak
+ * audit tetap dikirim satu request: bila log dibaca, perubahannya memang nol
+ * baris.
+ */
+async function ubahDenganLog<V extends BatchItem<"pg">>(
+  label: string,
+  pernyataan: V,
+  log: LogIsian
+): Promise<void> {
+  const baris = await jalankanDenganLog(pernyataan, log)
+  if (!Array.isArray(baris) || baris.length === 0) {
+    throw new Error(`${label} tidak ditemukan di database, perubahan tidak tersimpan.`)
+  }
+}
+
 /** id dibuat di sini agar pernyataan insert kitab dan insert log dapat dibangun lebih dulu. */
 export async function tulisKitab({
   id,
@@ -299,7 +334,8 @@ export async function tulisKitab({
     return idKitab
   }
 
-  const [tersimpan] = await jalankanDenganLog(
+  await ubahDenganLog(
+    "Kitab",
     db
       .update(kitab)
       .set({ ...kolom, updatedAt: new Date() })
@@ -307,12 +343,6 @@ export async function tulisKitab({
       .returning({ id: kitab.id }),
     { ...log, targetId: idKitab }
   )
-
-  // Baris bisa hilang di antara pembacaan awal aksi dan transaksi ini. Tanpa
-  // pemeriksaan, klien diberi pesan "tersimpan" untuk UPDATE yang tidak
-  // mengenai apa pun. Jejak audit tetap tercatat satu request: bila ada yang
-  // membaca log ini, perubahannya memang nol baris.
-  if (!tersimpan) throw new Error("Kitab tidak ditemukan di database, perubahan tidak tersimpan.")
   return idKitab
 }
 
@@ -321,8 +351,13 @@ export async function ubahStatusKitab(
   status: StatusKitab,
   log: Omit<LogIsian, "targetId">
 ) {
-  await jalankanDenganLog(
-    db.update(kitab).set({ status, updatedAt: new Date() }).where(eq(kitab.id, id)),
+  await ubahDenganLog(
+    "Kitab",
+    db
+      .update(kitab)
+      .set({ status, updatedAt: new Date() })
+      .where(eq(kitab.id, id))
+      .returning({ id: kitab.id }),
     { ...log, targetId: id }
   )
 }
