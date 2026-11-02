@@ -29,7 +29,7 @@ const BIDANG: BidangEntitas[] = [
     kunci: "deskripsi",
     label: "Deskripsi fan",
     jenis: "textarea",
-    petunjuk: "20–400 karakter. Jelaskan cakupan ilmu dan contoh kitabnya.",
+    petunjuk: "20 s.d. 400 karakter. Jelaskan cakupan ilmu dan contoh kitabnya.",
     baris: 5,
   },
 ]

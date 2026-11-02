@@ -270,8 +270,8 @@ export function KatalogExplorer({
           {hasil.totalHalaman > 1 && (
             <div className="mt-12 flex flex-col items-center gap-3">
               <p className="text-xs text-muted-foreground">
-                Menampilkan {formatAngka((hasil.halaman - 1) * hasil.perHalaman + 1)}
-                –
+                Menampilkan {formatAngka((hasil.halaman - 1) * hasil.perHalaman + 1)}{" "}
+                s.d.{" "}
                 {formatAngka(
                   Math.min(hasil.halaman * hasil.perHalaman, hasil.total),
                 )}{" "}

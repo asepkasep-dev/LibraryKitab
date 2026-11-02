@@ -19,6 +19,7 @@ const tanggalWaktu = new Intl.DateTimeFormat("id-ID", {
 })
 
 const angka = new Intl.NumberFormat("id-ID")
+const ukuran = new Intl.NumberFormat("id-ID", { maximumFractionDigits: 1 })
 
 /** Kolom timestamp Drizzle berupa `Date`, data dummy dan API berupa ISO string. */
 export type WaktuInput = string | Date
@@ -45,8 +46,9 @@ export function formatAngka(nilai: number) {
 
 export function formatUkuranBerkas(byte: number) {
   if (byte < 1024) return `${byte} B`
-  const mb = byte / 1024 / 1024
-  return mb >= 10 ? `${mb.toFixed(0)} MB` : `${mb.toFixed(1)} MB`
+  const kb = byte / 1024
+  if (kb < 1024) return `${ukuran.format(kb)} KB`
+  return `${ukuran.format(kb / 1024)} MB`
 }
 
 export function waktuRelatif(waktu: WaktuInput, sekarang = Date.now()) {

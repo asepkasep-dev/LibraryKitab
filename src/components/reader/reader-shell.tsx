@@ -1,9 +1,9 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useRef, useState, type TouchEvent } from "react"
+import { useCallback, useEffect, useRef, useState, type TouchEvent } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, CircleCheck, LoaderCircle, LogIn, LogOut, Sparkles } from "lucide-react"
+import { AlertTriangle, ArrowLeft, CircleCheck, LoaderCircle, LogIn, Sparkles } from "lucide-react"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import {
@@ -12,7 +12,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet"
-import { HalamanKertas } from "@/components/reader/halaman-kertas"
+import { HalamanPdf } from "@/components/reader/halaman-pdf"
 import { PanelSamping } from "@/components/reader/panel-samping"
 import { ToolbarBaca, type PanelBaca } from "@/components/reader/toolbar-baca"
 import { toast } from "sonner"
@@ -21,17 +21,30 @@ import {
   KUNCI_PREFERENSI_BACA,
   ZOOM_BAKU,
   batasiZoom,
-  buatHalamanDummy,
   langkahZoom,
 } from "@/lib/baca"
 import { hitungPersentase, inisialNama } from "@/lib/format"
-import type { Bookmark, Catatan, KitabTayang } from "@/lib/dummy-data"
+import {
+  bukaSesiBaca,
+  hapusBookmarkHalaman,
+  hapusBookmarkId,
+  hapusCatatanId,
+  simpanProgresBacaAksi,
+  tambahBookmark,
+  tambahCatatan as tambahCatatanAksi,
+  ubahCatatanIsi,
+} from "@/actions/baca"
+import type { BookmarkVe, CatatanVe, KitabVe } from "@/db/queries"
 import { cn } from "@/lib/utils"
 
-type StatusProgres = "diam" | "menyimpan" | "tersimpan"
+type StatusProgres = "diam" | "menyimpan" | "tersimpan" | "gagal"
 
-function idBaru(awalan: string) {
-  return `${awalan}-${Date.now().toString(36)}`
+function urutBookmark(daftar: BookmarkVe[]) {
+  return [...daftar].sort((a, b) => a.halaman - b.halaman)
+}
+
+function urutCatatan(daftar: CatatanVe[]) {
+  return [...daftar].sort((a, b) => b.halaman - a.halaman)
 }
 
 function batasiHalaman(nilai: number, batas: number) {
@@ -40,18 +53,25 @@ function batasiHalaman(nilai: number, batas: number) {
 
 export function ReaderShell({
   kitab,
+  pdfBaca,
   halamanAwal,
   sumberAwal = "riwayat",
   bookmarkAwal,
   catatanAwal,
+  masuk,
+  penggunaId,
   namaPengguna,
 }: {
-  kitab: KitabTayang
+  kitab: KitabVe
+  /** Alamat PDF yang siap dimuat reader; sudah ditandatangani `urlBaca`. */
+  pdfBaca: string | null
   halamanAwal: number
   sumberAwal?: "riwayat" | "tautan"
-  bookmarkAwal: Bookmark[]
-  catatanAwal: Catatan[]
-  namaPengguna: string
+  bookmarkAwal: BookmarkVe[]
+  catatanAwal: CatatanVe[]
+  masuk: boolean
+  penggunaId: string
+  namaPengguna: string | null
 }) {
   const total = kitab.jumlahHalaman
   const router = useRouter()
@@ -60,18 +80,14 @@ export function ReaderShell({
   const [sepia, setSepia] = useState(false)
   const [panel, setPanel] = useState<PanelBaca | null>(null)
   const [tabPanel, setTabPanel] = useState<PanelBaca>("bookmark")
-  const [sudahMasuk, setSudahMasuk] = useState(true)
   const [statusProgres, setStatusProgres] = useState<StatusProgres>("diam")
   const [halamanTersimpan, setHalamanTersimpan] = useState(halamanAwal)
   const [saranLanjutDitutup, setSaranLanjutDitutup] = useState(false)
   const [layarLebar, setLayarLebar] = useState(false)
-  const [bookmark, setBookmark] = useState(() =>
-    [...bookmarkAwal].sort((a, b) => a.halaman - b.halaman),
-  )
-  const [catatan, setCatatan] = useState(() =>
-    [...catatanAwal].sort((a, b) => b.halaman - a.halaman),
-  )
+  const [bookmark, setBookmark] = useState(() => urutBookmark(bookmarkAwal))
+  const [catatan, setCatatan] = useState(() => urutCatatan(catatanAwal))
   const sentuhan = useRef<{ x: number; y: number } | null>(null)
+  const sesiTerbuka = useRef(false)
 
   /* Preferensi zoom dan Sepia Malam dipulihkan dari localStorage (Bab 6.C). */
   useEffect(() => {
@@ -104,14 +120,27 @@ export function ReaderShell({
 
   /* Progres dikirim dengan jeda 2 detik setiap kali halaman berpindah. */
   useEffect(() => {
-    if (!sudahMasuk || halaman === halamanTersimpan) return
+    if (!masuk || halaman === halamanTersimpan) return
     setStatusProgres("menyimpan")
     const jeda = setTimeout(() => {
-      setHalamanTersimpan(halaman)
-      setStatusProgres("tersimpan")
+      void simpanProgresBacaAksi({ kitabId: kitab.id, halaman }).then((hasil) => {
+        if (hasil.ok) {
+          setHalamanTersimpan(halaman)
+          setStatusProgres("tersimpan")
+        } else {
+          setStatusProgres("gagal")
+          toast.error(hasil.pesan)
+        }
+      })
     }, JEDA_SIMPAN_PROGRES_MS)
     return () => clearTimeout(jeda)
-  }, [halaman, sudahMasuk, halamanTersimpan])
+  }, [halaman, masuk, halamanTersimpan, kitab.id])
+
+  useEffect(() => {
+    if (!masuk || sesiTerbuka.current) return
+    sesiTerbuka.current = true
+    void bukaSesiBaca(kitab.id)
+  }, [masuk, kitab.id])
 
   const pindah = useCallback(
     (tujuan: number) => {
@@ -147,15 +176,14 @@ export function ReaderShell({
     return () => window.removeEventListener("keydown", padaTombol)
   }, [halaman, total, panel, pindah])
 
-  const isiHalaman = useMemo(() => buatHalamanDummy(kitab, halaman), [kitab, halaman])
   const bookmarkHalamanIni = bookmark.find((b) => b.halaman === halaman)
 
   function ubahZoom(arah: 1 | -1) {
     setZoom((sekarang) => langkahZoom(sekarang, arah))
   }
 
-  function tandaiHalaman() {
-    if (!sudahMasuk) {
+  async function tandaiHalaman() {
+    if (!masuk) {
       toast.info("Masuk untuk menyimpan bookmark", {
         description:
           "Reader tetap bisa dipakai tanpa akun, tetapi tandanya tidak tersimpan.",
@@ -163,31 +191,56 @@ export function ReaderShell({
       })
       return
     }
-    if (bookmarkHalamanIni) {
-      const yangHapus = bookmarkHalamanIni
-      setBookmark((daftar) => daftar.filter((b) => b.id !== yangHapus.id))
-      toast.success(`Bookmark halaman ${halaman} dihapus`, {
-        action: {
-          label: "Urungkan",
-          onClick: () => setBookmark((daftar) => [yangHapus, ...daftar].sort((a, b) => a.halaman - b.halaman)),
-        },
-      })
+    const yangAda = bookmarkHalamanIni
+    if (yangAda) {
+      setBookmark((daftar) => urutBookmark(daftar.filter((b) => b.id !== yangAda.id)))
+      const hasil = await hapusBookmarkHalaman({ kitabId: kitab.id, halaman })
+      if (hasil.ok) {
+        toast.success(`Bookmark halaman ${halaman} dihapus`, {
+          action: {
+            label: "Urungkan",
+            onClick: () => void pulihkanBookmark(yangAda),
+          },
+        })
+      } else {
+        setBookmark((daftar) => urutBookmark([yangAda, ...daftar]))
+        toast.error(hasil.pesan)
+      }
       return
     }
-    const baru: Bookmark = {
-      id: idBaru("bm"),
-      userId: "u1",
+    const hasil = await tambahBookmark({ kitabId: kitab.id, halaman })
+    if (!hasil.ok) {
+      toast.error(hasil.pesan)
+      return
+    }
+    const baru: BookmarkVe = {
+      id: hasil.id ?? "",
+      userId: penggunaId,
       kitabId: kitab.id,
       halaman,
       label: null,
-      createdAt: new Date().toISOString(),
+      createdAt: new Date(),
     }
-    setBookmark((daftar) => [baru, ...daftar].sort((a, b) => a.halaman - b.halaman))
+    setBookmark((daftar) => urutBookmark([baru, ...daftar]))
     setTabPanel("bookmark")
     setPanel("bookmark")
     toast.success(`Halaman ${halaman} ditandai`, {
       description: "Beri label lewat panel bookmark agar mudah ditemukan saat muraja'ah.",
     })
+  }
+
+  /** Urungan bookmark harus ikut tersimpan di server, bukan hanya di layar. */
+  async function pulihkanBookmark(item: BookmarkVe) {
+    const hasil = await tambahBookmark({
+      kitabId: kitab.id,
+      halaman: item.halaman,
+      label: item.label,
+    })
+    if (!hasil.ok) {
+      toast.error(hasil.pesan)
+      return
+    }
+    setBookmark((daftar) => urutBookmark([{ ...item, id: hasil.id ?? item.id }, ...daftar]))
   }
 
   function bukaPanel(tab: PanelBaca) {
@@ -199,56 +252,105 @@ export function ReaderShell({
     setPanel(tab)
   }
 
-  function tambahCatatan(isi: string) {
-    const baru: Catatan = {
-      id: idBaru("ct"),
-      userId: "u1",
+  async function tambahCatatan(isi: string) {
+    const hasil = await tambahCatatanAksi({ kitabId: kitab.id, halaman, isi })
+    if (!hasil.ok) {
+      toast.error(hasil.pesan)
+      return
+    }
+    const sekarang = new Date()
+    const baru: CatatanVe = {
+      id: hasil.id ?? "",
+      userId: penggunaId,
       kitabId: kitab.id,
       halaman,
       isi,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      createdAt: sekarang,
+      updatedAt: sekarang,
     }
-    setCatatan((daftar) => [baru, ...daftar].sort((a, b) => b.halaman - a.halaman))
+    setCatatan((daftar) => urutCatatan([baru, ...daftar]))
     toast.success(`Catatan tersimpan di halaman ${halaman}`)
   }
 
-  function ubahCatatan(id: string, isi: string) {
+  async function ubahCatatan(id: string, isi: string) {
+    const hasil = await ubahCatatanIsi(id, isi)
+    if (!hasil.ok) {
+      toast.error(hasil.pesan)
+      return
+    }
     setCatatan((daftar) =>
-      daftar.map((c) =>
-        c.id === id ? { ...c, isi, updatedAt: new Date().toISOString() } : c,
-      ),
+      urutCatatan(daftar.map((c) => (c.id === id ? { ...c, isi, updatedAt: new Date() } : c))),
     )
     toast.success("Catatan diperbarui")
   }
 
-  function hapusCatatan(id: string) {
+  async function hapusCatatan(id: string) {
     const tersimpan = catatan.find((c) => c.id === id)
-    setCatatan((daftar) => daftar.filter((c) => c.id !== id))
     if (!tersimpan) return
+    setCatatan((daftar) => urutCatatan(daftar.filter((c) => c.id !== id)))
+    const hasil = await hapusCatatanId(id)
+    if (!hasil.ok) {
+      setCatatan((daftar) => urutCatatan([tersimpan, ...daftar]))
+      toast.error(hasil.pesan)
+      return
+    }
     toast.success("Catatan dihapus", {
       action: {
         label: "Urungkan",
-        onClick: () => setCatatan((daftar) => [tersimpan, ...daftar]),
+        onClick: () => void pulihkanCatatan(tersimpan),
       },
     })
   }
 
-  function gantiLabel(id: string, label: string) {
+  async function pulihkanCatatan(item: CatatanVe) {
+    const hasil = await tambahCatatanAksi({
+      kitabId: kitab.id,
+      halaman: item.halaman,
+      isi: item.isi,
+    })
+    if (!hasil.ok) {
+      toast.error(hasil.pesan)
+      return
+    }
+    setCatatan((daftar) => urutCatatan([{ ...item, id: hasil.id ?? item.id }, ...daftar]))
+  }
+
+  async function gantiLabel(id: string, label: string) {
+    const tersimpan = bookmark.find((b) => b.id === id)
+    if (!tersimpan) return
+    const baru = label === "" ? null : label
     setBookmark((daftar) =>
-      daftar.map((b) => (b.id === id ? { ...b, label: label === "" ? null : label } : b)),
+      daftar.map((b) => (b.id === id ? { ...b, label: baru } : b)),
     )
+    const hasil = await tambahBookmark({
+      kitabId: kitab.id,
+      halaman: tersimpan.halaman,
+      label: baru,
+    })
+    if (!hasil.ok) {
+      setBookmark((daftar) =>
+        daftar.map((b) => (b.id === id ? { ...b, label: tersimpan.label } : b)),
+      )
+      toast.error(hasil.pesan)
+      return
+    }
     toast.success("Label bookmark diperbarui")
   }
 
-  function hapusBookmark(id: string) {
+  async function hapusBookmark(id: string) {
     const tersimpan = bookmark.find((b) => b.id === id)
-    setBookmark((daftar) => daftar.filter((b) => b.id !== id))
     if (!tersimpan) return
+    setBookmark((daftar) => urutBookmark(daftar.filter((b) => b.id !== id)))
+    const hasil = await hapusBookmarkId(id)
+    if (!hasil.ok) {
+      setBookmark((daftar) => urutBookmark([tersimpan, ...daftar]))
+      toast.error(hasil.pesan)
+      return
+    }
     toast.success(`Bookmark halaman ${tersimpan.halaman} dihapus`, {
       action: {
         label: "Urungkan",
-        onClick: () => setBookmark((daftar) => [tersimpan, ...daftar]),
+        onClick: () => void pulihkanBookmark(tersimpan),
       },
     })
   }
@@ -277,7 +379,7 @@ export function ReaderShell({
       }}
       bookmark={bookmark}
       catatan={catatan}
-      bolehSimpan={sudahMasuk}
+      bolehSimpan={masuk}
       onLompat={pindah}
       onTandaiHalamanIni={tandaiHalaman}
       onGantiLabel={gantiLabel}
@@ -308,52 +410,45 @@ export function ReaderShell({
           </div>
 
           <div className="flex items-center gap-2">
-            <span
-              className={cn(
-                "hidden items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset md:inline-flex",
-                statusProgres === "menyimpan"
-                  ? "bg-white/5 text-muted-foreground ring-white/10"
-                  : statusProgres === "tersimpan"
-                    ? "bg-emerald-500/10 text-emerald-300 ring-emerald-500/20"
-                    : "bg-white/5 text-muted-foreground ring-white/10",
-              )}
-            >
-              {statusProgres === "menyimpan" ? (
-                <LoaderCircle className="size-3.5 animate-spin" strokeWidth={1.75} />
-              ) : (
-                <CircleCheck className="size-3.5" strokeWidth={1.75} />
-              )}
-              {statusProgres === "menyimpan"
-                ? "Menyimpan progres…"
-                : `Progres di halaman ${halamanTersimpan} · ${hitungPersentase(halamanTersimpan, total)}%`}
-            </span>
-
-            {sudahMasuk ? (
-              <>
-                <Avatar className="size-8 ring-1 ring-white/15">
-                  <AvatarFallback className="bg-gold/15 font-heading text-xs text-gold">
-                    {inisialNama(namaPengguna)}
-                  </AvatarFallback>
-                </Avatar>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="gap-1.5 text-slate-300 hover:bg-white/10 hover:text-white"
-                  onClick={() => setSudahMasuk(false)}
-                >
-                  <LogOut className="size-4" strokeWidth={1.75} />
-                  <span className="hidden lg:inline">Keluar (demo)</span>
-                </Button>
-              </>
-            ) : (
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-1.5"
-                onClick={() => setSudahMasuk(true)}
+            {masuk && (
+              <span
+                className={cn(
+                  "hidden items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset md:inline-flex",
+                  statusProgres === "gagal"
+                    ? "bg-amber-500/10 text-amber-300 ring-amber-500/25"
+                    : statusProgres === "tersimpan"
+                      ? "bg-emerald-500/10 text-emerald-300 ring-emerald-500/20"
+                      : "bg-white/5 text-muted-foreground ring-white/10",
+                )}
               >
-                <LogIn className="size-4" strokeWidth={1.75} />
-                Masuk (demo)
+                {statusProgres === "menyimpan" ? (
+                  <LoaderCircle className="size-3.5 animate-spin" strokeWidth={1.75} />
+                ) : statusProgres === "gagal" ? (
+                  <AlertTriangle className="size-3.5" strokeWidth={1.75} />
+                ) : (
+                  <CircleCheck className="size-3.5" strokeWidth={1.75} />
+                )}
+                {statusProgres === "menyimpan"
+                  ? "Menyimpan progres…"
+                  : statusProgres === "gagal"
+                    ? "Progres belum tersimpan"
+                    : `Progres di halaman ${halamanTersimpan} · ${hitungPersentase(halamanTersimpan, total)}%`}
+              </span>
+            )}
+
+            {masuk ? (
+              <Avatar className="size-8 ring-1 ring-white/15">
+                <span className="sr-only">{namaPengguna ?? "Anggota"}</span>
+                <AvatarFallback className="bg-gold/15 font-heading text-xs text-gold">
+                  {inisialNama(namaPengguna)}
+                </AvatarFallback>
+              </Avatar>
+            ) : (
+              <Button asChild variant="outline" size="sm" className="gap-1.5">
+                <Link href="/sign-in">
+                  <LogIn className="size-4" strokeWidth={1.75} />
+                  Masuk
+                </Link>
               </Button>
             )}
           </div>
@@ -398,7 +493,14 @@ export function ReaderShell({
           onTouchEnd={padaSentuhanAkhir}
         >
           <div className="flex min-h-full justify-center">
-            <HalamanKertas kitab={kitab} isi={isiHalaman} zoom={zoom} sepia={sepia} />
+            <HalamanPdf
+              url={pdfBaca}
+              slug={kitab.slug}
+              judul={kitab.judulLatin}
+              halaman={halaman}
+              zoom={zoom}
+              sepia={sepia}
+            />
           </div>
         </div>
 
@@ -409,7 +511,7 @@ export function ReaderShell({
           sepia={sepia}
           sudahBookmark={Boolean(bookmarkHalamanIni)}
           panelTerbuka={panel}
-          bolehSimpan={sudahMasuk}
+          bolehSimpan={masuk}
           onLompat={pindah}
           onZoom={ubahZoom}
           onResetZoom={() => setZoom(ZOOM_BAKU)}

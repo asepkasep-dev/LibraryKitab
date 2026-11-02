@@ -18,6 +18,8 @@ const eslintConfig = [
       "out/**",
       "build/**",
       "next-env.d.ts",
+      // hasil salinan vendor (npm run pdfjs:worker), bukan kode proyek
+      "public/pdfjs/**",
     ],
   },
 ];

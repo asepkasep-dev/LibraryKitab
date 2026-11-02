@@ -6,6 +6,14 @@ import { z } from "zod"
  */
 export const skemaId = z.uuid("Identitas data tidak dikenali.")
 
+/**
+ * Zod memakai pesan bawaan berbahasa Inggris untuk nilai bertipe salah
+ * (mis. `nama: 123` dari klien rusak). Pesan itu lolos ke toast lewat `gagal()`,
+ * jadi setiap skema teks memakai pesan Indonesia di level tipe. Check lanjutan
+ * seperti min, max, dan regex tetap memakai pesannya sendiri.
+ */
+export const PESAN_TIPE = "Format kiriman tidak sesuai, periksa kembali isian Anda."
+
 export const skemaStatusKitab = z.enum(
   ["draft", "published", "archived"],
   "Status kitab tidak dikenali.",
@@ -31,30 +39,30 @@ export const KEPERLUAN = [
 
 export const skemaPesanKontak = z.object({
   nama: z
-    .string()
+    .string({ error: PESAN_TIPE })
     .trim()
     .min(3, "Tulis nama Anda minimal 3 karakter.")
     .max(80, "Nama terlalu panjang (maksimal 80 karakter)."),
   email: z
-    .string()
+    .string({ error: PESAN_TIPE })
     .trim()
     .min(1, "Email wajib diisi agar kami bisa membalas.")
     .pipe(z.email("Format email belum benar, contoh: nama@pesantren.id")),
   keperluan: z
-    .string()
+    .string({ error: PESAN_TIPE })
     .min(1, "Pilih keperluan pesan agar sampai ke orang yang tepat."),
   subjek: z
-    .string()
+    .string({ error: PESAN_TIPE })
     .trim()
     .min(5, "Subjek minimal 5 karakter.")
     .max(120, "Subjek maksimal 120 karakter."),
   pesan: z
-    .string()
+    .string({ error: PESAN_TIPE })
     .trim()
     .min(20, "Ceritakan kebutuhan Anda minimal 20 karakter.")
     .max(1200, "Pesan maksimal 1.200 karakter."),
   setujui: z
-    .boolean()
+    .boolean({ error: "Centang persetujuan penggunaan data Anda." })
     .refine((v) => v, "Centang persetujuan penggunaan data Anda."),
 })
 
@@ -64,13 +72,13 @@ export type PesanKontak = z.infer<typeof skemaPesanKontak>
 
 export const skemaProfil = z.object({
   namaLengkap: z
-    .string()
+    .string({ error: PESAN_TIPE })
     .trim()
     .min(3, "Tulis nama lengkap minimal 3 karakter.")
     .max(80, "Nama maksimal 80 karakter."),
   jenisPeran: z.enum(["santri", "ustadz"], "Pilih peran Anda di pesantren."),
   kelas: z
-    .string()
+    .string({ error: PESAN_TIPE })
     .trim()
     .min(2, "Isi kelas atau liwan tempat Anda mengaji.")
     .max(40, "Kelas maksimal 40 karakter."),
@@ -86,18 +94,18 @@ export type ProfilInput = z.infer<typeof skemaProfil>
 
 export const skemaKategori = z.object({
   nama: z
-    .string()
+    .string({ error: PESAN_TIPE })
     .trim()
     .min(3, "Nama kategori minimal 3 karakter.")
     .max(60, "Nama kategori maksimal 60 karakter."),
   slug: z
-    .string()
+    .string({ error: PESAN_TIPE })
     .trim()
     .min(3, "Slug minimal 3 karakter.")
     .max(60, "Slug maksimal 60 karakter.")
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Slug hanya huruf kecil, angka, dan tanda hubung."),
   deskripsi: z
-    .string()
+    .string({ error: PESAN_TIPE })
     .trim()
     .min(20, "Tulis deskripsi minimal 20 karakter agar santri paham cakupan fan ini.")
     .max(400, "Deskripsi maksimal 400 karakter."),
@@ -107,22 +115,22 @@ export type KategoriInput = z.infer<typeof skemaKategori>
 
 export const skemaPengarang = z.object({
   namaArab: z
-    .string()
+    .string({ error: PESAN_TIPE })
     .trim()
     .min(3, "Nama Arab minimal 3 karakter.")
     .max(120, "Nama Arab maksimal 120 karakter."),
   namaLatin: z
-    .string()
+    .string({ error: PESAN_TIPE })
     .trim()
     .min(3, "Nama Latin minimal 3 karakter.")
     .max(120, "Nama Latin maksimal 120 karakter."),
   tahunWafat: z
-    .string()
+    .string({ error: PESAN_TIPE })
     .trim()
     .min(2, "Isi tahun wafat, contoh: 723 H / 1323 M.")
     .max(24, "Tahun wafat maksimal 24 karakter."),
   biografiSingkat: z
-    .string()
+    .string({ error: PESAN_TIPE })
     .trim()
     .min(30, "Biografi singkat minimal 30 karakter.")
     .max(600, "Biografi maksimal 600 karakter."),
@@ -132,28 +140,28 @@ export type PengarangInput = z.infer<typeof skemaPengarang>
 
 export const skemaKitab = z.object({
   judulLatin: z
-    .string()
+    .string({ error: PESAN_TIPE })
     .trim()
     .min(3, "Judul Latin minimal 3 karakter.")
     .max(160, "Judul Latin maksimal 160 karakter."),
   judulArab: z
-    .string()
+    .string({ error: PESAN_TIPE })
     .trim()
     .min(3, "Judul Arab minimal 3 karakter.")
     .max(160, "Judul Arab maksimal 160 karakter."),
   kategoriId: z
-    .string()
+    .string({ error: PESAN_TIPE })
     .min(1, "Pilih kategori fan.")
     .refine((v) => skemaId.safeParse(v).success, "Kategori tidak dikenali."),
   pengarangId: z
-    .string()
+    .string({ error: PESAN_TIPE })
     .min(1, "Pilih pengarang kitab.")
     .refine((v) => skemaId.safeParse(v).success, "Pengarang tidak dikenali."),
   syarahId: z.union([z.literal(""), skemaId], {
     error: "Penyusun syarah tidak dikenali.",
   }),
   tahunTerbit: z
-    .string()
+    .string({ error: PESAN_TIPE })
     .trim()
     .min(2, "Isi tahun terbit, contoh 1405 M atau ± 720 H.")
     .max(40, "Tahun terbit maksimal 40 karakter."),
@@ -163,11 +171,11 @@ export const skemaKitab = z.object({
     .min(1, "Jumlah halaman minimal 1.")
     .max(5000, "Jumlah halaman maksimal 5.000."),
   deskripsi: z
-    .string()
+    .string({ error: PESAN_TIPE })
     .trim()
     .min(40, "Deskripsi minimal 40 karakter agar katalog informatif.")
     .max(2000, "Deskripsi maksimal 2.000 karakter."),
-  status: z.enum(["draft", "published", "archived"]),
+  status: skemaStatusKitab,
 })
 
 export type KitabInput = z.infer<typeof skemaKitab>

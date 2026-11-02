@@ -168,7 +168,7 @@ export function ToolbarBaca({
             </Button>
           </TooltipTrigger>
           <TooltipContent side="top" className="border-white/10 bg-slate-900">
-            Rentang {ZOOM_LANGKAH[0]}%–{ZOOM_LANGKAH[ZOOM_LANGKAH.length - 1]}%,
+            Rentang {ZOOM_LANGKAH[0]}% s.d. {ZOOM_LANGKAH[ZOOM_LANGKAH.length - 1]}%,
             klik untuk mengatur ulang
           </TooltipContent>
         </Tooltip>

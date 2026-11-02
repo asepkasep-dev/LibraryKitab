@@ -18,7 +18,7 @@ export function Footer() {
           <Logo />
           <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
             Perpustakaan digital kitab kuning untuk santri dan ustadz. Baca,
-            tandai, dan catat pemahaman Anda — gratis, dari perangkat apa pun.
+            tandai, dan catat pemahaman Anda. Gratis, dari perangkat apa pun.
           </p>
           <ul className="space-y-2 text-sm text-muted-foreground">
             <li className="flex items-start gap-2">

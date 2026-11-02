@@ -1,7 +1,7 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
-import { ubahRolePengguna, ubahStatusPengguna, tulisLog } from "@/db/mutations"
+import { ubahRolePengguna, ubahStatusPengguna } from "@/db/mutations"
 import { penggunaById } from "@/db/queries"
 import { butuhAdminAksi } from "@/lib/auth"
 import { skemaId, skemaPeranAnggota, skemaStatusAnggota } from "@/lib/validasi"
@@ -36,13 +36,11 @@ export async function ubahStatusAnggota(id: string, status: StatusPengguna): Pro
     const target = await penggunaById(idAnggota)
     if (!target) return { ok: false, pesan: "Pengguna tidak ditemukan di database." }
 
-    await ubahStatusPengguna(idAnggota, statusAnggota)
-    await tulisLog({
+    await ubahStatusPengguna(idAnggota, statusAnggota, {
       adminId: pengelola.id,
       aksi: statusAnggota === "aktif" ? "pengguna_diaktifkan" : "pengguna_dinonaktifkan",
       targetTabel: "users",
-      targetId: idAnggota,
-      detail: `${target.email}: ${target.status} → ${statusAnggota}`,
+      detail: `${target.status} → ${statusAnggota}`,
     })
     revalidatePath("/admin/pengguna")
 
@@ -62,13 +60,11 @@ export async function ubahPeranAnggota(id: string, role: Role): Promise<HasilAks
     const target = await penggunaById(idAnggota)
     if (!target) return { ok: false, pesan: "Pengguna tidak ditemukan di database." }
 
-    await ubahRolePengguna(idAnggota, peranAnggota)
-    await tulisLog({
+    await ubahRolePengguna(idAnggota, peranAnggota, {
       adminId: pengelola.id,
       aksi: "pengguna_peran_diubah",
       targetTabel: "users",
-      targetId: idAnggota,
-      detail: `${target.email}: ${target.role} → ${peranAnggota}`,
+      detail: `${target.role} → ${peranAnggota}`,
     })
     revalidatePath("/admin/pengguna")
 

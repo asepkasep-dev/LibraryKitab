@@ -56,7 +56,7 @@ export default async function BerandaPage() {
           <div className="space-y-8">
             <span className="inline-flex items-center gap-2 rounded-full border border-gold/25 bg-gold/10 px-3 py-1 text-xs font-semibold text-gold">
               <Sparkles className="size-3.5" strokeWidth={1.75} />
-              Assalamu&apos;alaikum — selamat datang di perpustakaan kitab
+              Assalamu&apos;alaikum, selamat datang di perpustakaan kitab
             </span>
 
             <div className="space-y-5">

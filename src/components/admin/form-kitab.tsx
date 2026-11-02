@@ -41,17 +41,17 @@ export type OpsiPilhan = { id: string; nama: string }
 
 const TIDAK_ADA = "tidak-ada"
 
-/** Balasan /api/admin/upload-pdf — hanya varian `ok: true` yang punya url. */
+/** Balasan /api/admin/upload-pdf — hanya varian `ok: true` yang punya bukti unggahan. */
 type ResponsUnggah = {
   ok: boolean
-  url?: string
   path?: string
   byte?: number
   halaman?: number
+  tanda?: string
   pesan?: string
 }
 
-type BerkasTersimpan = { url: string; path: string; byte: number; halaman: number }
+type BerkasTersimpan = { path: string; byte: number; halaman: number; tanda: string }
 
 const STATUS_OPSI: { nilai: StatusKitab; judul: string; keterangan: string }[] = [
   {
@@ -96,7 +96,6 @@ export function FormKitab({
     control,
     watch,
     setValue,
-    setError,
     formState: { errors, isSubmitting },
   } = useForm<KitabInput>({
     resolver: zodResolver(skemaKitab),
@@ -117,6 +116,8 @@ export function FormKitab({
   const status = watch("status")
   const slugPratinjau = slugify(judulLatin || "tanpa-judul")
   const berkasDitampilkan = tersimpan?.path ?? awal?.urlPdf ?? null
+  /** Selama berkas ada, bilangan halaman milik server; formulir hanya menampilkan. */
+  const punyaPdf = Boolean(tersimpan ?? awal?.urlPdf)
 
   function pilihBerkas(file: File | undefined | null) {
     if (!file) return
@@ -150,6 +151,8 @@ export function FormKitab({
     const muatan = new FormData()
     muatan.append("berkas", berkas)
     muatan.append("slug", judulLatin.trim() || berkas.name.replace(/\.pdf$/i, ""))
+    // Id kitab yang sedang disunting, supaya bukti unggah terikat padanya.
+    muatan.append("idKitab", awal?.id ?? "")
 
     const xhr = new XMLHttpRequest()
     xhr.open("POST", "/api/admin/upload-pdf")
@@ -166,10 +169,10 @@ export function FormKitab({
         data = null
       }
 
-      if (xhr.status < 300 && data?.ok && data.url && data.halaman) {
+      if (xhr.status < 300 && data?.ok && data.tanda && data.path && data.halaman) {
         setTersimpan({
-          url: data.url,
-          path: data.path ?? data.url,
+          path: data.path,
+          tanda: data.tanda,
           byte: data.byte ?? berkas.size,
           halaman: data.halaman,
         })
@@ -204,22 +207,7 @@ export function FormKitab({
   }
 
   async function onSubmit(data: KitabInput) {
-    const punyaBerkas = Boolean(tersimpan ?? awal?.urlPdf)
-    if (data.status === "published" && !punyaBerkas) {
-      setError("status", {
-        type: "server",
-        message: "Kitab belum dapat ditayangkan karena berkas PDF belum terunggah.",
-      })
-      toast.error("Berkas PDF belum terunggah", {
-        description: "Simpan sebagai draf dulu, atau unggah berkasnya sekarang.",
-      })
-      return
-    }
-
-    const hasil = await simpanKitab(awal?.id ?? null, data, {
-      urlPdf: tersimpan?.url,
-      ukuranPdfByte: tersimpan?.byte,
-    })
+    const hasil = await simpanKitab(awal?.id ?? null, data, { tanda: tersimpan?.tanda })
     if (!hasil.ok) {
       toast.error(hasil.pesan)
       return
@@ -229,7 +217,7 @@ export function FormKitab({
       description:
         data.status === "published"
           ? "Kitab tayang dan sudah muncul di katalog publik."
-          : "Belum tayang — hanya terlihat di panel pengelola.",
+          : "Belum tayang, hanya terlihat di panel pengelola.",
     })
     router.push("/admin/kitab")
   }
@@ -361,8 +349,15 @@ export function FormKitab({
                 id="jumlahHalaman"
                 className="h-10 tabular-nums"
                 inputMode="numeric"
+                readOnly={punyaPdf}
+                aria-readonly={punyaPdf}
                 {...register("jumlahHalaman", { valueAsNumber: true })}
               />
+              <p className="text-xs text-muted-foreground">
+                {punyaPdf
+                  ? "Dihitung server dari berkas PDF, tidak dapat diubah manual."
+                  : "Diisi otomatis begitu berkas PDF diunggah."}
+              </p>
               {errors.jumlahHalaman && (
                 <p className="text-xs text-red-400">{errors.jumlahHalaman.message}</p>
               )}
@@ -380,7 +375,7 @@ export function FormKitab({
             {...register("deskripsi")}
           />
           <p className="text-xs text-muted-foreground">
-            40–2.000 karakter. Teks ini tampil pada kartu katalog dan halaman detail.
+            40 s.d. 2.000 karakter. Teks ini tampil pada kartu katalog dan halaman detail.
           </p>
           {errors.deskripsi && (
             <p className="text-xs text-red-400">{errors.deskripsi.message}</p>
@@ -438,7 +433,7 @@ export function FormKitab({
             Tarik berkas PDF ke sini
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
-            atau pilih dari perangkat — format PDF, maks {MAKS_PDF_MB} MB
+            atau pilih dari perangkat. Format PDF, maks {MAKS_PDF_MB} MB
           </p>
           <Button
             type="button"

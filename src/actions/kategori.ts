@@ -6,7 +6,6 @@ import {
   hapusKategori as hapusBarisKategori,
   kategoriTerpakai,
   ubahKategori,
-  tulisLog,
 } from "@/db/mutations"
 import { hitungKitabTerhubung } from "@/db/queries"
 import { butuhAdminAksi } from "@/lib/auth"
@@ -51,20 +50,18 @@ export async function simpanKategori(
       }
     }
 
-    const tersimpan = idKategori
-      ? await ubahKategori(idKategori, data)
-      : await buatKategori(data)
-
-    await tulisLog({
+    const jejak = {
       adminId: pengelola.id,
       aksi: idKategori ? "kategori_diperbarui" : "kategori_dibuat",
       targetTabel: "kategori",
-      targetId: tersimpan.id,
-      detail: `${tersimpan.nama} (${tersimpan.slug})`,
-    })
+      detail: `${data.nama} (${data.slug})`,
+    }
+    const idTersimpan = idKategori
+      ? await ubahKategori(idKategori, data, jejak)
+      : await buatKategori(data, jejak)
     segarkan()
 
-    return sukses(tersimpan.id, idKategori ? "Fan diperbarui." : `Fan “${tersimpan.nama}” ditambahkan.`)
+    return sukses(idTersimpan, idKategori ? "Fan diperbarui." : `Fan “${data.nama}” ditambahkan.`)
   } catch (error) {
     return gagal(error)
   }
@@ -82,12 +79,10 @@ export async function hapusKategori(id: string): Promise<HasilAksi> {
       }
     }
 
-    await hapusBarisKategori(idKategori)
-    await tulisLog({
+    await hapusBarisKategori(idKategori, {
       adminId: pengelola.id,
       aksi: "kategori_dihapus",
       targetTabel: "kategori",
-      targetId: idKategori,
     })
     segarkan()
 

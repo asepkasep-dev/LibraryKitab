@@ -30,6 +30,16 @@ function ambilUuid(nilai: string | string[] | undefined): string {
   return z.uuid().safeParse(raw).success ? raw : SEMUA
 }
 
+/**
+ * Nomor halaman dari address bar bisa berupa apa pun, termasuk "2.7" dan
+ * "Infinity". Offset dihitung dari nilai ini, jadi hanya bilangan bulat positif
+ * yang diteruskan; selain itu kembali ke halaman satu.
+ */
+function nomorHalaman(nilai: string): number {
+  const nomor = Number(nilai)
+  return Number.isFinite(nomor) ? Math.max(1, Math.trunc(nomor)) : 1
+}
+
 export function bacaQuery(sp: ParamSearch): QueryKatalog {
   const urut = ambilString(sp.urut)
   return {
@@ -38,6 +48,6 @@ export function bacaQuery(sp: ParamSearch): QueryKatalog {
     pengarang: ambilUuid(sp.pengarang),
     syarah: ambilUuid(sp.syarah),
     urut: OPSI_URUT.find((o) => o.nilai === urut)?.nilai ?? "terbaru",
-    halaman: Math.max(1, Number(ambilString(sp.halaman)) || 1),
+    halaman: nomorHalaman(ambilString(sp.halaman)),
   }
 }

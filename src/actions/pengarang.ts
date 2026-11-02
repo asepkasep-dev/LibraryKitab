@@ -6,7 +6,6 @@ import {
   hapusPengarang as hapusBarisPengarang,
   pengarangTerpakai,
   ubahPengarang,
-  tulisLog,
 } from "@/db/mutations"
 import { hitungKitabTerhubung } from "@/db/queries"
 import { butuhAdminAksi } from "@/lib/auth"
@@ -47,20 +46,20 @@ export async function simpanPengarang(
       }
     }
 
-    const tersimpan = idPengarang ? await ubahPengarang(idPengarang, data) : await buatPengarang(data)
-
-    await tulisLog({
+    const jejak = {
       adminId: pengelola.id,
       aksi: idPengarang ? "pengarang_diperbarui" : "pengarang_dibuat",
       targetTabel: "pengarang",
-      targetId: tersimpan.id,
-      detail: tersimpan.namaLatin,
-    })
+      detail: data.namaLatin,
+    }
+    const idTersimpan = idPengarang
+      ? await ubahPengarang(idPengarang, data, jejak)
+      : await buatPengarang(data, jejak)
     segarkan()
 
     return sukses(
-      tersimpan.id,
-      idPengarang ? "Data pengarang diperbarui." : `Pengarang “${tersimpan.namaLatin}” ditambahkan.`
+      idTersimpan,
+      idPengarang ? "Data pengarang diperbarui." : `Pengarang “${data.namaLatin}” ditambahkan.`
     )
   } catch (error) {
     return gagal(error)
@@ -92,12 +91,10 @@ export async function hapusPengarang(id: string): Promise<HasilAksi> {
       }
     }
 
-    await hapusBarisPengarang(idPengarang)
-    await tulisLog({
+    await hapusBarisPengarang(idPengarang, {
       adminId: pengelola.id,
       aksi: "pengarang_dihapus",
       targetTabel: "pengarang",
-      targetId: idPengarang,
     })
     segarkan()
 

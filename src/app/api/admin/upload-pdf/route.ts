@@ -1,6 +1,9 @@
 import { PDFDocument } from "pdf-lib"
+import { pesanAman } from "@/actions/tipe"
 import { butuhAdminAksi } from "@/lib/auth"
-import { unggahBerkas, urlPublik, jalurPdf } from "@/lib/bunny"
+import { cdnSiapPublikasi, jalurPdf, unggahBerkas } from "@/lib/bunny"
+import { buatTandaBerkas } from "@/lib/tanda-berkas"
+import { skemaId } from "@/lib/validasi"
 import { slugify } from "@/lib/format"
 
 export const runtime = "nodejs"
@@ -27,9 +30,21 @@ export async function POST(req: Request) {
   try {
     await butuhAdminAksi()
   } catch (error) {
+    return Response.json({
+      ok: false,
+      pesan: pesanAman(error, "Unggahan hanya tersedia untuk pengelola yang masuk."),
+    }, { status: 403 })
+  }
+
+  // Ditolak sebelum body 150 MB dibaca: tanpa alamat CDN, berkas yang naik tidak
+  // akan pernah bisa ditayangkan dan hanya jadi yatim di storage zone.
+  if (!cdnSiapPublikasi()) {
     return Response.json(
-      { ok: false, pesan: error instanceof Error ? error.message : "Akses ditolak." },
-      { status: 403 }
+      {
+        ok: false,
+        pesan: "Alamat tayang berkas belum dikonfigurasi di server. Lengkapi BUNNY_CDN_HOSTNAME lebih dulu.",
+      },
+      { status: 501 },
     )
   }
 
@@ -53,6 +68,17 @@ export async function POST(req: Request) {
       { status: 413 }
     )
   }
+
+  // Bukti unggah diikat ke kitab sasaran. Untuk kitab yang belum dibuat,
+  // id-nya null dan hanya bisa dipakai pada save yang juga belum ber-id.
+  const idMinta = String(form.get("idKitab") ?? "").trim()
+  if (idMinta && !skemaId.safeParse(idMinta).success) {
+    return Response.json(
+      { ok: false, pesan: "Identitas kitab pada formulir unggah tidak dikenali." },
+      { status: 400 },
+    )
+  }
+  const kitabId = idMinta || null
 
   const isi = new Uint8Array(await berkas.arrayBuffer())
   const mimeBoleh = mimeDiizinkan().includes(berkas.type.toLowerCase())
@@ -84,19 +110,13 @@ export async function POST(req: Request) {
   const path = jalurPdf(`${slug}-${crypto.randomUUID().slice(0, 8)}`)
   try {
     await unggahBerkas(path, isi, "application/pdf")
+    // Bukti bertanda tangan: aksi tulis memakai angka ini, bukan ketikan formulir.
+    const tanda = buatTandaBerkas({ kitabId, path, byte: berkas.size, halaman })
+    return Response.json({ ok: true, path, byte: berkas.size, halaman, tanda, slug })
   } catch (error) {
     return Response.json(
-      { ok: false, pesan: error instanceof Error ? error.message : "Unggahan ke Bunny Storage gagal." },
+      { ok: false, pesan: pesanAman(error, "Berkas belum naik ke penyimpanan. Coba unggah ulang.") },
       { status: 502 }
     )
   }
-
-  return Response.json({
-    ok: true,
-    url: urlPublik(path),
-    path,
-    byte: berkas.size,
-    halaman,
-    slug,
-  })
 }

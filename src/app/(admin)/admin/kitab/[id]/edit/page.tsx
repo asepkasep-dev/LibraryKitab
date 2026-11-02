@@ -36,7 +36,7 @@ export default async function UbahKitabPage({ params }: HalamanProps) {
   return (
     <div className="space-y-6">
       <PageIntro
-        judul={`Ubah metadata — ${kitab.judulLatin}`}
+        judul={`Ubah metadata: ${kitab.judulLatin}`}
         deskripsi="Perubahan judul dan deskripsi langsung tampil pada halaman detail publik. Mengganti berkas PDF tidak mengubah riwayat baca yang sudah tersimpan."
         aksi={
           <div className="flex flex-wrap items-center gap-2">

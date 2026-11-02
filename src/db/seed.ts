@@ -9,18 +9,20 @@ import { kategori, kitab, pengarang } from "./schema";
 import { db } from "./index";
 import { angkatAdminDariEnv } from "./admin-seed";
 import { kategoriList, kitabList, pengarangList } from "../lib/dummy-data";
+import { jalurPdf } from "../lib/bunny";
 
 function wajib<T>(nilai: T | undefined, pesan: string): T {
   if (nilai === undefined) throw new Error(pesan);
   return nilai;
 }
 
-/** url_pdf memakai host CDN Bunny bila terisi; seed tidak mengunggah file. */
+/**
+ * url_pdf memakai host CDN Bunny bila terisi; seed tidak mengunggah file.
+ * Jalurnya mengikuti jalurPdf agar sama dengan hasil unggahan admin.
+ */
 function urlPdf(slug: string) {
-  const host = process.env.BUNNY_CDN_HOSTNAME;
-  return host
-    ? `https://${host}/kitab/${slug}.pdf`
-    : `https://cdn.example.org/kitab/${slug}.pdf`;
+  const host = process.env.BUNNY_CDN_HOSTNAME || "cdn.example.org";
+  return `https://${host}/${jalurPdf(slug)}`;
 }
 
 async function seedKategori() {

@@ -11,6 +11,30 @@ export function sukses(id: string, pesan: string): HasilAksi {
 
 const PESAN_UMUM = "Belum berhasil menyimpan. Silakan coba lagi."
 
+/**
+ * Penanda pesan dari driver, pustaka, atau jaringan. Pesan seperti ini memuat
+ * SQL, nama tabel, atau status HTTP internal yang tidak boleh sampai ke layar.
+ */
+const POLA_TEKNIS =
+  /\bSQL\b|syntax error|violates|constraint|relation "|column .* does not|password authentication|ECONNREFUSED|ENOTFOUND|ESOCKET|socket hang up|fetch failed|is not defined|Cannot read propert|Unexpected (token|end)|TypeError|RangeError|pdf-lib|bunnycdn|stack trace/i
+
+export function pesanAman(error: unknown, baku = PESAN_UMUM): string {
+  if (error instanceof ZodError) return error.issues[0]?.message ?? baku
+  if (!(error instanceof Error)) return baku
+
+  if (error.message.includes("DATABASE_URL")) {
+    return "Koneksi database belum dikonfigurasi. Isi DATABASE_URL di .env.local."
+  }
+  if (adalahTabrakanUnik(error)) {
+    return "Nama atau slug ini sudah dipakai data lain. Gunakan kombinasi lain."
+  }
+  if (adalahTeknis(error)) {
+    catatDiServer(error)
+    return baku
+  }
+  return error.message
+}
+
 export function gagal(error: unknown): HasilAksi {
   if (error instanceof ZodError) {
     const bidang: Record<string, string> = {}
@@ -18,41 +42,27 @@ export function gagal(error: unknown): HasilAksi {
       const kunci = isu.path.join(".")
       if (kunci && !bidang[kunci]) bidang[kunci] = isu.message
     }
-    const pertama = error.issues[0]?.message ?? "Data belum lengkap."
-    return { ok: false, pesan: pertama, bidang }
+    return { ok: false, pesan: pesanAman(error), bidang }
   }
-
-  if (error instanceof Error) {
-    if (adalahTabrakanUnik(error)) {
-      return {
-        ok: false,
-        pesan: "Nama atau slug ini sudah dipakai data lain. Gunakan kombinasi lain.",
-      }
-    }
-    if (error.message.includes("DATABASE_URL")) {
-      return {
-        ok: false,
-        pesan: "Koneksi database belum dikonfigurasi. Isi DATABASE_URL di .env.local.",
-      }
-    }
-    if (adalahErrorTeknis(error)) {
-      catatDiServer(error)
-      return { ok: false, pesan: PESAN_UMUM }
-    }
-    return { ok: false, pesan: error.message }
-  }
-
-  return { ok: false, pesan: PESAN_UMUM }
+  return { ok: false, pesan: pesanAman(error) }
 }
 
-/** Error driver dan framework membawa pesan mentah berisi SQL; hanya pesan buatan kita yang aman untuk client. */
-function adalahErrorTeknis(error: Error) {
-  return error.name !== "Error"
+/** Error berpembungkus (NeonDbError, AggregateError) atau berbunyi seperti pesan teknis pustaka. */
+function adalahTeknis(error: Error) {
+  return error.name !== "Error" || POLA_TEKNIS.test(error.message)
 }
 
 function catatDiServer(error: Error) {
   if (typeof window !== "undefined") return
-  console.error("[aksi] kegagalan teknis:", error.stack ?? error.message)
+  console.error("[aksi] kegagalan teknis:", samarkanEmail(error.stack ?? error.message))
+}
+
+/**
+ * Stack trace bisa memuat pesan driver yang mengulang data pengguna, misalnya
+ * alamat email di pesan gagal masuk. Log server tidak boleh menyimpannya.
+ */
+function samarkanEmail(teks: string) {
+  return teks.replace(/[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g, "[email]")
 }
 
 /** Postgres sqlstate 23505 (unique_violation) pada error Neon/driver. */

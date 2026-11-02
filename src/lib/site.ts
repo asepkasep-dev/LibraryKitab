@@ -1,7 +1,7 @@
 export const APP_NAME = "KitabKu Pesantren"
 
 export const APP_DESCRIPTION =
-  "Perpustakaan digital kitab kuning untuk santri dan ustadz. Jelajahi katalog, baca e-kitab langsung di ponsel, simpan bookmark dan catatan, lalu lanjutkan bacaan dari halaman terakhir — gratis untuk seluruh warga pesantren."
+  "Perpustakaan digital kitab kuning untuk santri dan ustadz. Jelajahi katalog, baca e-kitab langsung di ponsel, simpan bookmark dan catatan, lalu lanjutkan bacaan dari halaman terakhir. Gratis untuk seluruh warga pesantren."
 
 export const APP_URL =
   process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"
@@ -11,7 +11,7 @@ export const KONTAK_EMAIL = "perpustakaan@alkitabku.sch.id"
 export const KONTAK_TELEPON = "0812-3456-7890"
 export const KONTAK_ALAMAT =
   "Kompleks Pesantren Al-Hikmah, Jl. Kyai Haji Abdul Hamid No. 45, Indonesia"
-export const KONTAK_JAM = "Senin–Sabtu, 08.00–15.30 WIB"
+export const KONTAK_JAM = "Senin s.d. Sabtu, 08.00 s.d. 15.30 WIB"
 
 export type NavLink = {
   href: string
@@ -75,7 +75,7 @@ export type UrutanKatalog = "terbaru" | "judul" | "terpopuler"
 
 export const OPSI_URUT: { nilai: UrutanKatalog; label: string }[] = [
   { nilai: "terbaru", label: "Terbaru" },
-  { nilai: "judul", label: "Judul A–Z" },
+  { nilai: "judul", label: "Judul A-Z" },
   { nilai: "terpopuler", label: "Terpopuler" },
 ]
 

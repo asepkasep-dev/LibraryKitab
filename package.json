@@ -3,11 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
-    "build": "next build",
+    "dev": "npm run pdfjs:worker && next dev --turbopack",
+    "build": "npm run pdfjs:worker && next build",
+    "pdfjs:worker": "node tools/siap-worker-pdf.mjs",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --import tsx --test \"tests/**/*.test.ts\"",
+    "test": "node --import tsx --experimental-test-module-mocks --test \"tests/**/*.test.ts\"",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:seed": "tsx src/db/seed.ts"

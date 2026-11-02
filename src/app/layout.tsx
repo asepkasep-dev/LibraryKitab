@@ -31,7 +31,7 @@ const amiri = Amiri({
 export const metadata: Metadata = {
   metadataBase: new URL(APP_URL),
   title: {
-    default: `${APP_NAME} — Perpustakaan Digital Kitab Kuning`,
+    default: `${APP_NAME}: Perpustakaan Digital Kitab Kuning`,
     template: `%s | ${APP_NAME}`,
   },
   description: APP_DESCRIPTION,
@@ -39,7 +39,7 @@ export const metadata: Metadata = {
     type: "website",
     locale: "id_ID",
     siteName: APP_NAME,
-    title: `${APP_NAME} — Perpustakaan Digital Kitab Kuning`,
+    title: `${APP_NAME}: Perpustakaan Digital Kitab Kuning`,
     description: APP_DESCRIPTION,
   },
 }

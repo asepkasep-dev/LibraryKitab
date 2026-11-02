@@ -1,22 +1,6 @@
 import { Webhook } from "svix"
 import { hapusPenggunaByClerkId, pastikanPengguna } from "@/db/mutations"
-import type { Role, StatusPengguna } from "@/db/queries"
-
-/** Bentuk evento Clerk yang dipakai route ini (minimal, sesuai kebutuhan). */
-type EventClerk = {
-  type: string
-  data: {
-    id?: string
-    email?: string
-    primary_email_address_id?: string
-    email_addresses?: { id: string; email_address: string }[]
-    first_name?: string | null
-    last_name?: string | null
-    public_metadata?: { role?: string; status?: string }
-  }
-}
-
-const AKSI = new Set(["user.created", "user.updated", "user.deleted"])
+import { rencanaDariEvento } from "@/lib/webhook-clerk"
 
 export async function POST(req: Request) {
   const rahasia = process.env.CLERK_WEBHOOK_SECRET
@@ -34,61 +18,46 @@ export async function POST(req: Request) {
     return Response.json({ error: "Header Svix tidak lengkap." }, { status: 400 })
   }
 
-  const isi = await req.text()
-
-  let evento: EventClerk
+  // Signature diverifikasi di atas body mentah sebelum satu bait data dipercaya.
+  let muatan: unknown
   try {
-    const terverifikasi = new Webhook(rahasia).verify(isi, {
+    // verify() dari svix sudah mengembalikan objek hasil parse, bukan string,
+    // sehingga tidak ada JSON.parse lanjutan di sini.
+    muatan = new Webhook(rahasia).verify(await req.text(), {
       "svix-id": id,
       "svix-timestamp": timestamp,
       "svix-signature": signature,
     })
-    evento = JSON.parse(String(terverifikasi)) as EventClerk
   } catch {
     return Response.json({ error: "Signature webhook tidak valid." }, { status: 400 })
   }
 
-  if (!AKSI.has(evento.type)) {
-    return Response.json({ received: true, diabaikan: evento.type })
+  const rencana = rencanaDariEvento(muatan)
+  if (!rencana) {
+    // Bentuk muatan tidak valid untuk tipe yang kita pakai; pesan singkat,
+    // tanpa mengulang isi muatan agar data pribadi tidak masuk log.
+    return Response.json({ error: "Muatan webhook tidak valid." }, { status: 400 })
   }
 
-  const clerkId = evento.data.id
-  if (!clerkId) {
-    return Response.json({ error: "Evento tanpa user id." }, { status: 400 })
+  if (rencana.jenis === "abaikan") {
+    // Tipe tak terkait diakui dengan 200 agar Clerk berhenti mengirim ulang.
+    return Response.json({ received: true, diabaikan: rencana.tipe })
   }
 
-  if (evento.type === "user.deleted") {
-    const idLokal = await hapusPenggunaByClerkId(clerkId)
+  if (rencana.jenis === "hapus") {
+    const idLokal = await hapusPenggunaByClerkId(rencana.clerkId)
     return Response.json({ received: true, dihapus: idLokal })
   }
 
-  const email =
-    evento.data.email_addresses?.find(
-      (row) => row.id === evento.data.primary_email_address_id
-    )?.email_address ??
-    evento.data.email_addresses?.[0]?.email_address ??
-    `${clerkId}@pengguna.kitabku`
-
-  const nama = [evento.data.first_name, evento.data.last_name]
-    .filter(Boolean)
-    .join(" ")
-
-  /**
-   * Nilai apa pun selain yang dikenal jatuh ke default aman. Peran hanya naik
-   * bila admin menulis public_metadata.role = "admin" lewat Clerk API/dashboard.
-   */
-  const peran: Role =
-    evento.data.public_metadata?.role === "admin" ? "admin" : "member"
-  const status: StatusPengguna =
-    evento.data.public_metadata?.status === "nonaktif" ? "nonaktif" : "aktif"
-
-  await pastikanPengguna({
-    clerkId,
-    email,
-    namaLengkap: nama || null,
-    role: peran,
-    status,
+  // Kegagalan database dibiarkan melewat: Next membalas 5xx dan Clerk mengirim
+  // ulang, lebih baik daripada mengakui evento yang belum tersimpan.
+  // Hanya identitas akun yang dipakai. Akun baru jatuh ke default kolom (member,
+  // aktif); peran dan status diubah lewat dasbor admin atau seed, bukan webhook.
+  const tersimpan = await pastikanPengguna({
+    clerkId: rencana.clerkId,
+    email: rencana.email,
+    namaLengkap: rencana.namaLengkap,
   })
 
-  return Response.json({ received: true, tipe: evento.type })
+  return Response.json({ received: true, id: tersimpan.id })
 }

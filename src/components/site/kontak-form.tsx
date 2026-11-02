@@ -48,7 +48,7 @@ export function KontakForm() {
     setTerkirim({ nama: data.nama, subjek: data.subjek })
     reset()
     toast.success("Pesan Anda tercatat", {
-      description: "Pengelola biasanya membalas dalam 1–2 hari kerja.",
+      description: "Pengelola biasanya membalas dalam 1 atau 2 hari kerja.",
     })
   }
 
@@ -66,7 +66,7 @@ export function KontakForm() {
             <p className="mx-auto max-w-md text-sm leading-relaxed text-muted-foreground">
               Pesan tentang “{terkirim.subjek}” sudah masuk ke antrean
               pengelola perpustakaan. Kami membalas melalui email yang Anda
-              tulis, biasanya dalam 1–2 hari kerja pada jam layanan.
+              tulis, biasanya dalam 1 atau 2 hari kerja pada jam layanan.
             </p>
           </div>
           <Button variant="outline" onClick={() => setTerkirim(null)}>

@@ -20,6 +20,9 @@
 # production
 /build
 
+# hasil salinan worker pdf.js (npm run pdfjs:worker)
+/public/pdfjs
+
 # misc
 .DS_Store
 *.pem

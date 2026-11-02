@@ -180,7 +180,7 @@ export default function TentangPage() {
               </h2>
               <p className="max-w-xl text-sm leading-relaxed text-muted-foreground">
                 Katalog kami terbuka untuk semua. Jika kitab yang Anda cari belum
-                tersedia, usulkan lewat halaman kontak — kami memprioritaskan
+                tersedia, usulkan lewat halaman kontak. Kami memprioritaskan
                 kitab yang rutin dikaji.
               </p>
             </div>

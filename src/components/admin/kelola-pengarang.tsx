@@ -34,7 +34,7 @@ const BIDANG: BidangEntitas[] = [
     kunci: "biografiSingkat",
     label: "Biografi singkat",
     jenis: "textarea",
-    petunjuk: "30–600 karakter. Cukup guru, karya utama, dan aliran keilmuannya.",
+    petunjuk: "30 s.d. 600 karakter. Cukup guru, karya utama, dan aliran keilmuannya.",
     baris: 5,
   },
 ]

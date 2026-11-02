@@ -30,7 +30,7 @@ import {
   skemaIsiCatatan,
   skemaLabelBookmark,
 } from "@/lib/baca"
-import type { Bookmark as BookmarkTipe, Catatan, KitabTayang } from "@/lib/dummy-data"
+import type { BookmarkVe, CatatanVe, KitabVe } from "@/db/queries"
 import {
   formatTanggalSingkat,
   hitungPersentase,
@@ -90,13 +90,13 @@ export function PanelSamping({
   onHapusCatatan,
   className,
 }: {
-  kitab: KitabTayang
+  kitab: KitabVe
   halaman: number
   totalHalaman: number
   tab: TabPanel
   onTab: (tab: TabPanel) => void
-  bookmark: BookmarkTipe[]
-  catatan: Catatan[]
+  bookmark: BookmarkVe[]
+  catatan: CatatanVe[]
   bolehSimpan: boolean
   onLompat: (nomor: number) => void
   onTandaiHalamanIni: () => void
@@ -397,7 +397,7 @@ export function PanelSamping({
                               onClick={() =>
                                 setKonfirmasi({
                                   judul: "Hapus catatan?",
-                                  penjelasan: `Catatan pada halaman ${item.halaman} tidak dapat dikembalikan.`,
+                                  penjelasan: `Catatan pada halaman ${item.halaman} akan hilang dari daftar Anda.`,
                                   lakukan: () => onHapusCatatan(item.id),
                                 })
                               }
@@ -423,7 +423,7 @@ export function PanelSamping({
                     )}
                     <p className="text-[11px] text-muted-foreground">
                       Dibuat {formatTanggalSingkat(item.createdAt)}
-                      {item.updatedAt !== item.createdAt &&
+                      {item.updatedAt.getTime() !== item.createdAt.getTime() &&
                         ` · diubah ${waktuRelatif(item.updatedAt)}`}
                     </p>
                   </article>

@@ -41,7 +41,7 @@ export function FaqAccordion({
       {hasil.length === 0 ? (
         <p className="surface-card p-6 text-sm text-muted-foreground">
           Belum ada pertanyaan yang cocok dengan “{kataKunci}”. Coba kata lain,
-          atau kirim pesan lewat halaman kontak — jawabannya akan kami tambahkan
+          atau kirim pesan lewat halaman kontak. Jawabannya akan kami tambahkan
           ke daftar ini.
         </p>
       ) : (

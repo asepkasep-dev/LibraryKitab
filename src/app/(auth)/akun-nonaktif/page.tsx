@@ -19,7 +19,7 @@ const DIBLOKIR = [
 const TETAP_TERBUKA = [
   "Katalog kitab dan halaman detail koleksi tetap terbuka",
   "Pembaca kitab (/baca) tetap dapat dipakai tanpa login",
-  "Bookmark, catatan, dan riwayat Anda tidak dihapus — hanya disembunyikan",
+  "Bookmark, catatan, dan riwayat Anda tidak dihapus, hanya disembunyikan",
 ]
 
 export default async function AkunNonaktifPage() {
@@ -41,8 +41,8 @@ export default async function AkunNonaktifPage() {
         </h1>
         <p className="text-sm leading-relaxed text-muted-foreground">
           Pengelola perpustakaan menonaktifkan akun tersebut, sehingga area
-          keanggotaan tidak dapat dibuka. Tidak ada data baca yang hilang —
-          seluruh bookmark, catatan, dan riwayat menunggu akun aktif kembali.
+          keanggotaan tidak dapat dibuka. Tidak ada data baca yang hilang.
+          Seluruh bookmark, catatan, dan riwayat menunggu akun aktif kembali.
         </p>
       </header>
 

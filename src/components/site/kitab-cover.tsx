@@ -44,7 +44,7 @@ export function KitabCover({
   return (
     <figure
       role="img"
-      aria-label={`Sampul kitab ${kitab.judulLatin} (${kitab.judulArab}) — fan ${kitab.kategori.nama}`}
+      aria-label={`Sampul kitab ${kitab.judulLatin} (${kitab.judulArab}), fan ${kitab.kategori.nama}`}
       className={cn(
         "relative flex overflow-hidden rounded-xl ring-1 ring-white/10",
         sizes === "portrait" ? "aspect-3/4" : "aspect-16/9",
