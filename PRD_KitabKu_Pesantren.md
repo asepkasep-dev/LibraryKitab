@@ -193,7 +193,7 @@ Aplikasi ini memiliki area publik yang dapat diakses tanpa login, tetapi fitur p
 ### G. Manajemen Kitab (Admin)
 1. **Cara Kerja**: Admin membuka `/admin/kitab/baru`, mengisi metadata (judul Latin, judul Arab, pengarang, syarah, kategori, tahun, jumlah halaman, deskripsi), lalu mengunggah file PDF. Sistem mengunggah PDF ke Bunny Storage dan menyimpan URL-nya. Jumlah halaman dibaca otomatis dari PDF. Admin dapat menyimpan sebagai draf atau langsung mempublikasikan.
 2. **Aturan Sistem**:
-   - File wajib berformat PDF dengan ukuran maksimal 150 MB.
+   - File wajib berformat PDF dengan ukuran maksimal 50 MB. Batas ini harus tetap di bawah potongan body request Vercel (100 MB pada Fluid Compute) supaya unggahan yang kebesaran ditolak aplikasi dengan pesan yang jelas, bukan dihentikan platform sebagai kesalahan jaringan.
    - Judul Latin wajib diisi (3 hingga 150 karakter). Slug dibuat otomatis dari judul dan wajib unik.
    - Kategori (fan) wajib dipilih. Pengarang wajib dipilih. Syarah bersifat opsional.
    - Mengganti file PDF pada kitab yang sudah ada tidak menghapus bookmark dan catatan, tetapi halaman yang melebihi jumlah baru akan ditandai untuk ditinjau admin.
@@ -562,8 +562,11 @@ BUNNY_CDN_HOSTNAME=kitabku.b-cdn.net
 BUNNY_CDN_TOKEN_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxx
 BUNNY_SIGNED_URL_EXPIRY_SECONDS=900
 
-# Batas Unggahan
-MAX_PDF_SIZE_MB=150
+# Batas Unggahan. Nilai baku dibaca dari MAKS_PDF_MB di src/lib/site.ts dan dipakai
+# oleh server maupun formulir, jadi keduanya tidak bisa menjanjikan angka berbeda.
+# Env ini hanya untuk menurunkan batas tanpa deploy ulang; menaikkannya melewati
+# potongan body request Vercel membuat unggahan besar mati sebagai kesalahan jaringan.
+MAX_PDF_SIZE_MB=50
 ALLOWED_PDF_MIME=application/pdf
 
 # Rate Limiting (opsional untuk produksi)
