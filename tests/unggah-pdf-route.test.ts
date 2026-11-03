@@ -1,6 +1,7 @@
 import assert from "node:assert/strict"
 import { beforeEach, mock, test } from "node:test"
 import { PDFDocument } from "pdf-lib"
+import { MAKS_PDF_MB } from "../src/lib/site"
 import { bacaTandaBerkas } from "../src/lib/tanda-berkas"
 
 /**
@@ -75,7 +76,7 @@ function formulir(berkas: Blob, fields: Record<string, string> = {}) {
 const ENV_DASAR: Record<string, string | null> = {
   BUNNY_CDN_HOSTNAME: HOST_UJI,
   BUNNY_STORAGE_ACCESS_KEY: KUNCI_UJI,
-  MAX_PDF_SIZE_MB: "150",
+  MAX_PDF_SIZE_MB: "50",
   ALLOWED_PDF_MIME: "application/pdf",
   // Dihilangkan supaya masa berlaku bukti selalu baku 3 jam, tidak ikut
   // dipengaruhi nilai yang tertinggal di shell yang menjalankan test.
@@ -103,7 +104,11 @@ beforeEach(() => {
   D.terunggah = []
 })
 
-async function unggah(body: FormData | string, override: Record<string, string | null> = {}): Promise<HasilRoute> {
+async function unggah(
+  body: FormData | string,
+  override: Record<string, string | null> = {},
+  kepala: Record<string, string> = {},
+): Promise<HasilRoute> {
   const post = await routeUnggah()
 
   const env = { ...ENV_DASAR, ...override }
@@ -120,9 +125,9 @@ async function unggah(body: FormData | string, override: Record<string, string |
         ? new Request("http://localhost/api/admin/upload-pdf", {
             method: "POST",
             body,
-            headers: { "content-type": "text/plain" },
+            headers: { "content-type": "text/plain", ...kepala },
           })
-        : new Request("http://localhost/api/admin/upload-pdf", { method: "POST", body })
+        : new Request("http://localhost/api/admin/upload-pdf", { method: "POST", body, headers: kepala })
     const respons = await post(req)
     return { status: respons.status, body: (await respons.json()) as Record<string, unknown> }
   } finally {
@@ -201,6 +206,53 @@ test("ukuran diperiksa lebih dulu daripada bentuk idKitab", async () => {
   const berkas = new File([isi], "rusak-dan-kebesaran.pdf", { type: "application/pdf" })
   const hasil = await unggah(formulir(berkas, { idKitab: "bukan-uuid" }), { MAX_PDF_SIZE_MB: "1" })
   assert.equal(hasil.status, 413, "Batas ukuran menjawab sebelum bentuk idKitab diperiksa.")
+})
+
+/* --------------------------- batas dini atas content-length --------------------------- */
+
+test("content-length di atas batas ditolak sebelum satu byte pun diurai", async () => {
+  // Body-nya sengaja bukan formulir. Tanpa batas dini, route membaca isinya
+  // lalu menjawab 400 "muatan formulir tidak terbaca"; yang diuji di sini justru
+  // ukuran menjawab lebih dulu, sebelum multipart diurai dan masuk memori.
+  const hasil = await unggah("x".repeat(64), {}, { "content-length": String(4 * 1024 * 1024 * 1024) })
+  assert.equal(hasil.status, 413)
+  assert.match(String(hasil.body.pesan), /terlalu besar/i)
+  assert.deepEqual(D.terunggah, [])
+})
+
+test("content-length yang berbohong ke bawah tidak lolos, pemeriksaan nyata tetap menjaga", async () => {
+  const isi = new Uint8Array(2 * 1024 * 1024)
+  const berkas = new File([isi], "gajah-diaku-kecil.pdf", { type: "application/pdf" })
+  const hasil = await unggah(formulir(berkas), { MAX_PDF_SIZE_MB: "1" }, { "content-length": "10" })
+  assert.equal(hasil.status, 413, "Batas dini hanya hematan; ukuran berkas sesudah terurai yang memutuskan.")
+})
+
+test("batas dini memberi ruang untuk kepala multipart", async () => {
+  // Berkasnya jauh di bawah 1 MB; content-length cuma 2 KB di atas maksimum,
+  // yaitu biaya pembungkus multipart. Menolak di sini berarti menolak unggahan
+  // yang sebenarnya sah.
+  const hasil = await unggah(
+    formulir(await berkasPdf(), { slug: "kitab-uji" }),
+    { MAX_PDF_SIZE_MB: "1" },
+    { "content-length": String(1024 * 1024 + 2048) },
+  )
+  assert.equal(hasil.status, 200, "Selisih kecil di atas maksimum adalah kepala multipart, bukan berkas kebesaran.")
+})
+
+test("content-length yang bukan angka diabaikan dan unggahan tetap jalan", async () => {
+  const hasil = await unggah(formulir(await berkasPdf(), { slug: "kitab-uji" }), {}, { "content-length": "bukan-angka" })
+  assert.equal(hasil.status, 200)
+})
+
+test("batas bawaan server adalah angka yang dijanjikan UI", async () => {
+  // Tanpa env, route harus jatuh ke MAKS_PDF_MB. Kalau route menyimpan batasnya
+  // sendiri di tempat, admin membaca satu angka di formulir dan angka lain di
+  // penolakan server.
+  const hasil = await unggah("x", { MAX_PDF_SIZE_MB: null }, {
+    "content-length": String((MAKS_PDF_MB + 2) * 1024 * 1024),
+  })
+  assert.equal(hasil.status, 413, "Batas bawaan harus menolak muatan di atasnya, bukan membaca body lalu menjawab 400.")
+  assert.equal(hasil.body.pesan, `Berkas terlalu besar. Maksimal ${MAKS_PDF_MB} MB.`)
 })
 
 test("idKitab yang bukan uuid ditolak sebelum berkas diunggah", async () => {

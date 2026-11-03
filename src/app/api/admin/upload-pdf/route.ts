@@ -2,15 +2,17 @@ import { PDFDocument } from "pdf-lib"
 import { pesanAman } from "@/actions/tipe"
 import { butuhAdminAksi } from "@/lib/auth"
 import { cdnSiapPublikasi, jalurPdf, unggahBerkas } from "@/lib/bunny"
+import { MAKS_PDF_MB } from "@/lib/site"
 import { buatTandaBerkas } from "@/lib/tanda-berkas"
 import { skemaId } from "@/lib/validasi"
 import { slugify } from "@/lib/format"
 
 export const runtime = "nodejs"
 
+/** Batas baku diikat ke MAKS_PDF_MB yang dibaca UI; env hanya untuk menurunkannya. */
 function batasMb() {
   const nilai = Number(process.env.MAX_PDF_SIZE_MB)
-  return Number.isFinite(nilai) && nilai > 0 ? nilai : 150
+  return Number.isFinite(nilai) && nilai > 0 ? nilai : MAKS_PDF_MB
 }
 
 function mimeDiizinkan() {
@@ -18,6 +20,21 @@ function mimeDiizinkan() {
     .split(",")
     .map((s) => s.trim().toLowerCase())
     .filter(Boolean)
+}
+
+/**
+ * Ruang pembungkus multipart (boundary plus field slug dan idKitab) yang ikut
+ * terkirim walau berkasnya sendiri pas di batas. Batas dini memakai angka ini
+ * supaya ia selalu lebih longgar daripada pemeriksaan sungguhan.
+ */
+const RUANG_MULTIPART_BYTE = 1024 * 1024
+
+/** Satu pesan untuk dua jalur penolakan ukuran, supaya angkanya tidak bisa berbeda. */
+function terlaluBesar() {
+  return Response.json(
+    { ok: false, pesan: `Berkas terlalu besar. Maksimal ${batasMb()} MB.` },
+    { status: 413 }
+  )
 }
 
 /** `application/pdf` sering hilang di sisi klien, jadi magic byte yang memutuskan. */
@@ -36,7 +53,7 @@ export async function POST(req: Request) {
     }, { status: 403 })
   }
 
-  // Ditolak sebelum body 150 MB dibaca: tanpa alamat CDN, berkas yang naik tidak
+  // Ditolak sebelum satu byte body dibaca: tanpa alamat CDN, berkas yang naik tidak
   // akan pernah bisa ditayangkan dan hanya jadi yatim di storage zone.
   if (!cdnSiapPublikasi()) {
     return Response.json(
@@ -46,6 +63,15 @@ export async function POST(req: Request) {
       },
       { status: 501 },
     )
+  }
+
+  // Batas dini: `content-length` dikirim klien dan boleh berbohong, jadi angka
+  // ini hanya hematan agar muatan raksasa ditolak sebelum multipart diurai ke
+  // memori. Keputusan tetap pada ukuran berkas sesudah terurai, di bawah sini.
+  const maksimumByte = batasMb() * 1024 * 1024
+  const panjangDiklaim = Number(req.headers.get("content-length"))
+  if (Number.isFinite(panjangDiklaim) && panjangDiklaim > maksimumByte + RUANG_MULTIPART_BYTE) {
+    return terlaluBesar()
   }
 
   const form = await req.formData().catch(() => null)
@@ -58,15 +84,11 @@ export async function POST(req: Request) {
     return Response.json({ ok: false, pesan: "Berkas PDF tidak dikirim." }, { status: 400 })
   }
 
-  const maksimumByte = batasMb() * 1024 * 1024
   if (berkas.size === 0) {
     return Response.json({ ok: false, pesan: "Berkas PDF kosong." }, { status: 400 })
   }
   if (berkas.size > maksimumByte) {
-    return Response.json(
-      { ok: false, pesan: `Berkas terlalu besar. Maksimal ${batasMb()} MB.` },
-      { status: 413 }
-    )
+    return terlaluBesar()
   }
 
   // Bukti unggah diikat ke kitab sasaran. Untuk kitab yang belum dibuat,

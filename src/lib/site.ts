@@ -81,5 +81,10 @@ export const OPSI_URUT: { nilai: UrutanKatalog; label: string }[] = [
 
 export const KITAB_PER_HALAMAN = 12
 
-/** Batas unggahan berkas PDF (NEXT_PUBLIC_MAX_PDF_SIZE_MB pada .env). */
-export const MAKS_PDF_MB = 150
+/**
+ * Batas unggah PDF dalam MB. Satu angka ini dipakai UI untuk menjanjikan dan
+ * server sebagai nilai baku untuk memutuskan, supaya keduanya tidak bisa
+ * berbeda. Vercel memotong body request di 100 MB, jadi batas harus di bawahnya;
+ * MAX_PDF_SIZE_MB boleh dipasang untuk menurunkan nilai ini tanpa deploy ulang.
+ */
+export const MAKS_PDF_MB = 50
