@@ -128,6 +128,32 @@ test("ikon Sparkles tidak dipakai sebagai penanda fitur", () => {
   assert.deepEqual(ditemukan, {}, `Pilih ikon yang punya makna.\n${petaTeks(ditemukan)}`)
 })
 
+test("komponen dan hook reader tidak boleh lahir lagi di atas 200 baris", () => {
+  // AGENTS: komponen maksimal sekitar 200 baris. Ratchet di bawah hanya memandang
+  // ".tsx", jadi lima hook reader dan baca-alur.ts lolos dari jaringnya. Aturan
+  // ini nol toleransi dan tanpa daftar dasar: folder reader sudah dipecah, jadi
+  // berkas baru yang panjang harus dipecah sejak lahir, bukan dicatat sebagai utang.
+  const DIREKTORI = "src/components/reader"
+  const berkasReader = berkasSumber([".ts", ".tsx"])
+    .filter((rel) => rel.startsWith(`${DIREKTORI}/`))
+    .filter((rel) => !rel.slice(DIREKTORI.length + 1).includes("/"))
+  assert.ok(
+    berkasReader.length > 0,
+    `Pemeriksaan ini kehilangan artinya bila ${DIREKTORI} tidak lagi berisi berkas.`,
+  )
+  const diperiksa = [...berkasReader, "src/lib/baca-alur.ts"]
+  const ditemukan: Record<string, number> = {}
+  for (const rel of diperiksa) {
+    const baris = baca(rel).split("\n").length
+    if (baris > 200) ditemukan[rel] = baris
+  }
+  assert.deepEqual(
+    ditemukan,
+    {},
+    `Pecah dulu sebelum menambah baris; ini berkas yang melewati 200 baris.\n${petaTeks(ditemukan)}`
+  )
+})
+
 /* ------------------------------ ratchet utang ------------------------------ */
 
 test("em dash dan en dash tidak bertambah dari daftar dasar", () => {
@@ -170,9 +196,6 @@ test("jumlah komponen di atas 200 baris tidak bertambah dari daftar dasar", () =
     "src/app/(public)/tentang/page.tsx": 203,
     "src/components/member/form-profil.tsx": 356,
     "src/components/member/kerja-catatan.tsx": 317,
-    "src/components/reader/panel-samping.tsx": 462,
-    "src/components/reader/reader-shell.tsx": 546,
-    "src/components/reader/toolbar-baca.tsx": 235,
     "src/components/shell/sidebar-shell.tsx": 329,
     "src/components/site/katalog-explorer.tsx": 354,
     "src/components/site/kontak-form.tsx": 217,
@@ -205,7 +228,7 @@ test("utang permukaan glassmorphism tidak bertambah dari daftar dasar", () => {
     "src/app/(public)/tentang/page.tsx": 1,
     "src/app/globals.css": 1,
     "src/app/not-found.tsx": 1,
-    "src/components/reader/reader-shell.tsx": 1,
+    "src/components/reader/kop-baca.tsx": 1,
     "src/components/shell/sidebar-shell.tsx": 3,
     "src/components/site/faq-accordion.tsx": 1,
     "src/components/site/footer.tsx": 1,

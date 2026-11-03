@@ -1,6 +1,5 @@
 "use client"
 
-import { useEffect, useState, type ReactNode } from "react"
 import {
   Bookmark,
   ChevronLeft,
@@ -13,6 +12,8 @@ import {
   ZoomIn,
   ZoomOut,
 } from "lucide-react"
+import { LompatHalamanBaca } from "@/components/reader/lompat-halaman-baca"
+import { TombolToolbar } from "@/components/reader/tombol-toolbar-baca"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import {
@@ -22,45 +23,6 @@ import {
 } from "@/components/ui/tooltip"
 import { ZOOM_BAKU, ZOOM_LANGKAH } from "@/lib/baca"
 import { cn } from "@/lib/utils"
-
-function TombolToolbar({
-  label,
-  aktif,
-  tertekan,
-  onClick,
-  children,
-}: {
-  label: string
-  aktif?: boolean
-  tertekan?: boolean
-  onClick: () => void
-  children: ReactNode
-}) {
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          aria-label={label}
-          aria-pressed={aktif}
-          onClick={onClick}
-          className={cn(
-            "size-9 rounded-xl text-foreground hover:bg-white/10 hover:text-white",
-            aktif && "bg-gold/15 text-gold hover:bg-gold/20 hover:text-gold",
-            tertekan && "text-gold",
-          )}
-        >
-          {children}
-        </Button>
-      </TooltipTrigger>
-      <TooltipContent side="top" className="border-white/10 bg-popover">
-        {label}
-      </TooltipContent>
-    </Tooltip>
-  )
-}
 
 export type PanelBaca = "bookmark" | "catatan"
 
@@ -93,22 +55,6 @@ export function ToolbarBaca({
   onBookmark: () => void
   onPanel: (tab: PanelBaca) => void
 }) {
-  const [teksLompat, setTeksLompat] = useState(String(halaman))
-
-  useEffect(() => {
-    setTeksLompat(String(halaman))
-  }, [halaman])
-
-  function kirimLompat(berkas: React.FormEvent) {
-    berkas.preventDefault()
-    const tujuan = Number.parseInt(teksLompat, 10)
-    if (Number.isNaN(tujuan)) {
-      setTeksLompat(String(halaman))
-      return
-    }
-    onLompat(Math.min(totalHalaman, Math.max(1, tujuan)))
-  }
-
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-3 pb-3 sm:pb-5">
       <div className="surface-card pointer-events-auto flex max-w-[min(56rem,100%)] flex-wrap items-center justify-center gap-0.5 rounded-2xl px-2 py-1.5 shadow-[0_20px_50px_-12px_rgb(0_0_0/0.8)]">
@@ -119,22 +65,7 @@ export function ToolbarBaca({
           <ChevronLeft strokeWidth={1.75} />
         </TombolToolbar>
 
-        <form onSubmit={kirimLompat} className="flex items-center gap-1 px-1">
-          <label htmlFor="lompat-halaman" className="sr-only">
-            Nomor halaman
-          </label>
-          <input
-            id="lompat-halaman"
-            value={teksLompat}
-            onChange={(e) => setTeksLompat(e.target.value.replace(/\D/g, ""))}
-            onBlur={() => setTeksLompat(String(halaman))}
-            inputMode="numeric"
-            className="h-9 w-12 rounded-lg border border-white/10 bg-white/5 text-center font-heading text-sm font-semibold tabular-nums outline-none focus-visible:border-gold focus-visible:ring-2 focus-visible:ring-gold/40"
-          />
-          <span className="text-sm text-muted-foreground tabular-nums">
-            / {totalHalaman}
-          </span>
-        </form>
+        <LompatHalamanBaca halaman={halaman} totalHalaman={totalHalaman} onLompat={onLompat} />
 
         <TombolToolbar
           label="Halaman berikutnya"
