@@ -151,10 +151,12 @@ export async function hapusPenggunaByClerkId(clerkId: string) {
 /* ------------------------------ Kategori (fan) ----------------------------- */
 
 /**
- * Semua tulis entitas menerima jejak audit dan mengirimnya lewat jalur ber-jejak
- * (`jalankanDenganLog`, atau `ubahDenganLog` untuk UPDATE): satu request Neon
- * yang dieksekusi dalam satu transaksi, supaya tidak ada perubahan tanpa jejak,
- * atau jejak tanpa perubahan.
+ * Semua tulis entitas menerima jejak audit dan mengirimnya lewat jalur ber-jejak:
+ * satu request Neon yang dieksekusi dalam satu transaksi, supaya tidak ada
+ * perubahan tanpa jejak, atau jejak tanpa perubahan. Jalurnya dipilih menurut
+ * bentuk tulisnya: `jalankanDenganLog` untuk INSERT (satu baris pasti masuk atau
+ * transaksi gagal), `ubahDenganLog` untuk UPDATE dan `hapusDenganLog` untuk
+ * DELETE (keduanya menuntut RETURNING karena bisa mengenai nol baris).
  */
 export async function buatKategori(
   input: KategoriInput,
@@ -188,7 +190,11 @@ export async function ubahKategori(
 }
 
 export async function hapusKategori(id: string, log: Omit<LogIsian, "targetId">) {
-  await jalankanDenganLog(db.delete(kategori).where(eq(kategori.id, id)), { ...log, targetId: id })
+  await hapusDenganLog(
+    "Kategori",
+    db.delete(kategori).where(eq(kategori.id, id)).returning({ id: kategori.id }),
+    { ...log, targetId: id }
+  )
 }
 
 /* ------------------------------ Pengarang & syarah ----------------------------- */
@@ -234,10 +240,14 @@ export async function ubahPengarang(
 }
 
 export async function hapusPengarang(id: string, log: Omit<LogIsian, "targetId">) {
-  await jalankanDenganLog(db.delete(pengarang).where(eq(pengarang.id, id)), {
-    ...log,
-    targetId: id,
-  })
+  await hapusDenganLog(
+    "Pengarang",
+    db.delete(pengarang).where(eq(pengarang.id, id)).returning({ id: pengarang.id }),
+    {
+      ...log,
+      targetId: id,
+    }
+  )
 }
 
 /* ------------------------------ Kitab ----------------------------- */
@@ -313,6 +323,23 @@ async function ubahDenganLog<V extends BatchItem<"pg">>(
   }
 }
 
+/**
+ * Pasangan DELETE + jejak audit dengan tuntutan bukti yang sama. Aksi hapus
+ * memeriksa keterhubungan lebih dulu, lalu baris sasarannya bisa hilang sebelum
+ * transaksi ini berjalan; tanpa RETURNING admin diberi pesan "terhapus" untuk
+ * nol baris dan jejak audit mencatat penghapusan yang tidak pernah terjadi.
+ */
+async function hapusDenganLog<V extends BatchItem<"pg">>(
+  label: string,
+  pernyataan: V,
+  log: LogIsian
+): Promise<void> {
+  const baris = await jalankanDenganLog(pernyataan, log)
+  if (!Array.isArray(baris) || baris.length === 0) {
+    throw new Error(`${label} tidak ditemukan di database, tidak ada yang dihapus.`)
+  }
+}
+
 /** id dibuat di sini agar pernyataan insert kitab dan insert log dapat dibangun lebih dulu. */
 export async function tulisKitab({
   id,
@@ -363,7 +390,10 @@ export async function ubahStatusKitab(
 }
 
 export async function hapusKitab(id: string, log: Omit<LogIsian, "targetId">) {
-  await jalankanDenganLog(db.delete(kitab).where(eq(kitab.id, id)), { ...log, targetId: id })
+  await hapusDenganLog("Kitab", db.delete(kitab).where(eq(kitab.id, id)).returning({ id: kitab.id }), {
+    ...log,
+    targetId: id,
+  })
 }
 
 /**

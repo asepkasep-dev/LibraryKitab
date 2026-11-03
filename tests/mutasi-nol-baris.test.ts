@@ -58,6 +58,9 @@ type ModulMutasi = {
   ubahRolePengguna: (id: string, role: unknown, log: unknown) => Promise<unknown>
   ubahStatusPengguna: (id: string, status: unknown, log: unknown) => Promise<unknown>
   tulisKitab: (arg: unknown) => Promise<string>
+  hapusKategori: (id: string, log: unknown) => Promise<unknown>
+  hapusPengarang: (id: string, log: unknown) => Promise<unknown>
+  hapusKitab: (id: string, log: unknown) => Promise<unknown>
 }
 
 let muat: Promise<ModulMutasi> | null = null
@@ -205,4 +208,68 @@ test("regresi: tulisKitab sudah menolak baris kosong", async () => {
       }),
     /tidak ditemukan/i
   )
+})
+
+/* ------------------------------ DELETE kelola ------------------------------ */
+
+const kasusHapus = [
+  { nama: "kategori", panggil: async (m: ModulMutasi) => m.hapusKategori(ID, LOG) },
+  { nama: "pengarang", panggil: async (m: ModulMutasi) => m.hapusPengarang(ID, LOG) },
+  { nama: "kitab", panggil: async (m: ModulMutasi) => m.hapusKitab(ID, LOG) },
+]
+
+test("DELETE kelola menolak saat baris sasarannya sudah hilang", async () => {
+  const m = await modul()
+  for (const { nama, panggil } of kasusHapus) {
+    reset()
+    D.baris = []
+    await assert.rejects(
+      () => panggil(m),
+      (error: unknown) => {
+        assert.ok(error instanceof Error, `${nama}: harus Error, bukan nilai lain.`)
+        assert.match(error.message, /tidak ditemukan/i, `${nama}: pesan harus menyebut hilangnya data.`)
+        assert.match(error.message, /tidak ada yang dihapus/i, `${nama}: pesan harus menegaskan nol baris terhapus.`)
+        return true
+      },
+      `${nama} seharusnya menolak walau database balas nol baris`
+    )
+  }
+})
+
+test("pesan tolak hapus menyebut entitas yang hilang", async () => {
+  const m = await modul()
+  reset()
+  D.baris = []
+  const pesan = await m.hapusPengarang(ID, LOG).then(
+    () => null,
+    (error: unknown) => (error as Error).message
+  )
+  assert.ok(pesan)
+  assert.match(pesan, /pengarang/i)
+})
+
+test("bukti baris diminta lewat RETURNING agar hapus nol baris terdeteksi", async () => {
+  const m = await modul()
+  for (const { nama, panggil } of kasusHapus) {
+    reset()
+    D.baris = [{ id: ID }]
+    await panggil(m)
+    const hapus = D.tercatat.find((p) => p.jenis === "delete")
+    assert.ok(hapus, `${nama}: pernyataan DELETE harus dibangun`)
+    assert.ok(
+      hapus.adaReturning,
+      `${nama}: tanpa RETURNING tidak ada baris bukti, hapus nol baris tak terbedakan dari sukses`
+    )
+  }
+})
+
+test("jejak audit dikirim satu request bersama DELETE", async () => {
+  const m = await modul()
+  for (const { nama, panggil } of kasusHapus) {
+    reset()
+    D.baris = [{ id: ID }]
+    await panggil(m)
+    assert.equal(D.jumlahBatch, 1, `${nama}: tulis dan jejak audit harus satu request, bukan dua`)
+    assert.equal(D.isiBatch.length, 2, `${nama}: batch berisi DELETE lalu INSERT logAdmin`)
+  }
 })

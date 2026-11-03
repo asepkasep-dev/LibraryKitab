@@ -50,6 +50,8 @@ const D = {
   hapusIsi: [] as string[],
   dipakaiKitabLain: false,
   hapusGagal: false,
+  /** Dilempar mock `hapusKitab` untuk meniru penolakan nol baris dari database. */
+  hapusBarisError: null as Error | null,
   /** Path yang dilepas dari cache halaman oleh aksi, tercatat urut. */
   revalid: [] as string[],
 }
@@ -67,6 +69,7 @@ function aturUlang() {
   D.hapusIsi = []
   D.dipakaiKitabLain = false
   D.hapusGagal = false
+  D.hapusBarisError = null
   D.revalid = []
 }
 
@@ -118,7 +121,9 @@ async function daftarkanMock() {
       ubahStatusKitab: async (id: string, status: string, log: LogIsian) => {
         D.statusIsi.push({ id, status, log })
       },
-      hapusKitab: async () => undefined,
+      hapusKitab: async () => {
+        if (D.hapusBarisError) throw D.hapusBarisError
+      },
       slugKitabTerpakai: async (slug: string, kecualiId?: string) => {
         D.slugTanya.push({ slug, kecualiId })
         return D.slugTerpakai.has(slug)
@@ -505,6 +510,18 @@ test("kitab dihapus: alamat lama kitab itu ikut disegarkan", async () => {
   const hasil = await (await aksi()).hapusKitab(ID_KITAB)
   assert.equal(hasil.ok, true)
   assert.deepEqual(D.revalid, harapanSegarkan("kitab-yang-dihapus"))
+})
+
+test("hapus nol baris dilaporkan gagal dan tidak menyegarkan halaman", async () => {
+  aturUlang()
+  D.kitab = barisKitab({ slug: "kitab-hilang" })
+  D.hapusBarisError = new Error("Kitab tidak ditemukan di database, tidak ada yang dihapus.")
+
+  const hasil = await (await aksi()).hapusKitab(ID_KITAB)
+
+  assert.equal(hasil.ok, false)
+  assert.equal(hasil.pesan, "Kitab tidak ditemukan di database, tidak ada yang dihapus.")
+  assert.deepEqual(D.revalid, [], "Halaman tidak boleh disegarkan untuk penghapusan yang tidak terjadi.")
 })
 
 test("aksi yang ditolak tidak menyegarkan satu halaman pun", async () => {
