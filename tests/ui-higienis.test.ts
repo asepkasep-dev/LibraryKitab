@@ -78,6 +78,21 @@ test("setiap pemakaian framer-motion punya fallback prefers-reduced-motion", () 
   )
 })
 
+test("animasi CSS punya fallback prefers-reduced-motion", () => {
+  // AGENTS: setiap animasi menghormati preferensi hemat gerak. Keyframe di luar
+  // framer-motion (shimmer skeleton) dan `scroll-behavior: smooth` tidak bisa
+  // dijangkau hook useReducedMotion, jadi fallback-nya wajib ada di stylesheet.
+  const css = baca("src/app/globals.css")
+  const mulai = css.search(/@media[^{]*prefers-reduced-motion:\s*reduce/)
+  assert.notEqual(mulai, -1, "globals.css belum punya blok prefers-reduced-motion: reduce.")
+
+  const blok = css.slice(mulai)
+  assert.match(blok, /animation-duration/, "Animasi CSS harus dipangkas jadi instan.")
+  assert.match(blok, /animation-iteration-count/, "Animasi berulang harus berhenti, bukan diperlambat.")
+  assert.match(blok, /transition-duration/, "Transisi harus dipangkas jadi instan.")
+  assert.match(blok, /scroll-behavior/, "Gulir halus harus kembali otomatis.")
+})
+
 test("footer tidak lagi menjanjikan mode demo", () => {
   // Area member dan pengelola kini butuh akun nyata; copy lama mengacu ke Tahap 1.
   const footer = baca("src/components/site/footer.tsx")
@@ -121,9 +136,8 @@ test("em dash dan en dash tidak bertambah dari daftar dasar", () => {
   // supaya copy baru tidak menyelinap membawa dash.
   const ditemukan = hitung(/[—–]/g, SEMUA_SUMBER)
   // Semua butir di daftar dasar adalah komentar kode, hasil pemindaian:
-  // 7 tanda di 5 berkas.
+  // 6 tanda di 4 berkas.
   const daftarDasar: Record<string, number> = {
-    "src/components/admin/form-kitab.tsx": 1,
     "src/db/queries.ts": 1,
     "src/db/seed.ts": 1,
     "src/lib/auth.ts": 2,
@@ -154,10 +168,6 @@ test("jumlah komponen di atas 200 baris tidak bertambah dari daftar dasar", () =
     "src/app/(public)/kitab/[slug]/page.tsx": 273,
     "src/app/(public)/page.tsx": 343,
     "src/app/(public)/tentang/page.tsx": 203,
-    "src/components/admin/form-kitab.tsx": 585,
-    "src/components/admin/kerja-entitas.tsx": 451,
-    "src/components/admin/kerja-pengguna.tsx": 318,
-    "src/components/admin/tabel-kitab.tsx": 354,
     "src/components/member/form-profil.tsx": 356,
     "src/components/member/kerja-catatan.tsx": 317,
     "src/components/reader/panel-samping.tsx": 462,

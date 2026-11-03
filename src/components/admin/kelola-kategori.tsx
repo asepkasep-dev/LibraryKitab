@@ -1,12 +1,12 @@
 "use client"
 
 import { Badge } from "@/components/ui/badge"
-import {
-  KerjaEntitas,
-  type BidangEntitas,
-  type EntitasBaris,
-  type KolomEntitas,
-} from "@/components/admin/kerja-entitas"
+import { KerjaEntitas } from "@/components/admin/kerja-entitas"
+import type {
+  BidangEntitas,
+  EntitasBaris,
+  KolomEntitas,
+} from "@/lib/admin-entitas"
 import { hapusKategori, simpanKategori } from "@/actions/kategori"
 import { potongTeks } from "@/lib/format"
 import { skemaKategori } from "@/lib/validasi"

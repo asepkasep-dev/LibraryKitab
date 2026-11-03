@@ -233,3 +233,19 @@
   );
   animation: shimmer 1.6s infinite;
 }
+
+/*
+ * Preferensi hemat gerak dari sistem. Keyframe dan `scroll-behavior` di atas
+ * tidak terjangkau hook useReducedMotion, jadi dinetralkan di sini. `!important`
+ * perlu agar aturan ini menang atas kelas utilitas komponen mana pun.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

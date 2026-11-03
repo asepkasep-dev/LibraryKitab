@@ -65,7 +65,7 @@ node -e "const s=require('fs').readFileSync(process.argv[1],'utf8');const n=(s.m
 
 Perintah cek yang benar membandingkan jumlah `\n` dengan jumlah `\r\n`; pola `/(^|\r)\n/g` menghitung CRLF dua kali dan menandai semua berkas.
 
-7. **Jangan pernah commit.** HEAD dibiarkan di `e9321f8` sampai pengguna meminta secara eksplisit.
+7. **Jangan pernah commit.** HEAD dibiarkan di `60adb98` sampai pengguna meminta secara eksplisit.
 8. **Jangan ubah `src/app/**`.** Kalau sebuah tugas sampai menyentuh halaman, itu tanda prop berubah bentuk dan harus dibatalkan.
 
 ---
@@ -88,16 +88,18 @@ Perintah cek yang benar membandingkan jumlah `\n` dengan jumlah `\r\n`; pola `/(
 | `src/components/admin/formulir-entitas.tsx` | baru | `FormulirEntitas` saat ini, utuh |
 | `src/components/admin/tabel-entitas.tsx` | baru | tabel generik + EmptyState |
 | `src/components/admin/dialog-hapus-entitas.tsx` | baru | Dialog hapus + proteksi `terkait` |
-| `src/components/admin/kerja-entitas.tsx` | ubah 451→±130 | wadah toolbar, dialog form, dialog hapus |
+| `src/components/admin/kerja-entitas.tsx` | ubah 451→±150 | wadah toolbar, dialog form, dialog hapus |
 | `src/components/admin/kelola-kategori.tsx` | ubah impor | ambil tipe dari `@/lib/admin-entitas` |
 | `src/components/admin/kelola-pengarang.tsx` | ubah impor | sama |
 | `src/lib/unggah-pdf-klien.ts` | baru | validasi berkas, muatan FormData, parse balasan, persen progres |
 | `src/components/admin/bagian-metadata-kitab.tsx` | baru | section metadata (judul, fan, pengarang, syarah, tahun, halaman, deskripsi) |
 | `src/components/admin/bagian-berkas-pdf.tsx` | baru | section PDF (berkas lama, dropzone, baris berkas, progres, alert) |
 | `src/components/admin/bagian-status-publikasi.tsx` | baru | section radio status + pesan Globe |
-| `src/components/admin/form-kitab.tsx` | ubah 585→±180 | `useForm`, unggah XHR, submit, footer |
+| `src/components/admin/form-kitab.tsx` | ubah 585→±185 | `useForm`, unggah XHR, submit, footer |
 | `tests/admin-kitab.test.ts`, `tests/admin-pengguna.test.ts`, `tests/admin-entitas.test.ts`, `tests/unggah-pdf-klien.test.ts` | baru | uji logika murni hasil ekstraksi |
 | `tests/ui-higienis.test.ts` | ubah | `daftarDasar` menyusut per tugas |
+
+Angka di kolom "ubah" adalah perkiraan, bukan target yang harus ditepati. Gerbang sebenarnya hanya dua: setiap berkas `.tsx` hasil pemecahan ≤ 200 baris dan tidak ada lagi entri admin di `daftarDasar`. Ukur dengan perintah bukti baris di Aturan teknis 5, jangan menyesuaikan kode agar cocok dengan angka di tabel ini.
 
 ## Urutan Tugas dan Alasannya
 
@@ -324,7 +326,7 @@ Expected: seluruh test pass, `exit=0`, tanpa warning.
 
 - [ ] **Step 5: Pindahkan kartu saringan ke `saringan-kitab.tsx`**
 
-Salin blok [src/components/admin/tabel-kitab.tsx:122-206](../../../src/components/admin/tabel-kitab.tsx#L122) apa adanya (judul label "Cari kitab", placeholder, dua Select, lima chip, tombol "Bersihkan saringan", tautan "Unggah kitab") ke berkas baru. Ganti hanya bacaan closure menjadi prop:
+Salin blok [src/components/admin/tabel-kitab.tsx:122-206](../../../src/components/admin/tabel-kitab.tsx#L122) apa adanya (judul label "Cari kitab", placeholder, dua Select, empat chip, tombol "Bersihkan saringan", tautan "Unggah kitab") ke berkas baru. Ganti hanya bacaan closure menjadi prop:
 
 ```tsx
 "use client"
@@ -398,7 +400,7 @@ export function DaftarKitab({
 
 - [ ] **Step 7: Pindahkan Dialog hapus ke `dialog-hapus-kitab.tsx`**
 
-Salin [tabel-kitab.tsx:322-350](../../../src/components/admin/tabel-kitab.tsx#L322) apa adanya beserta `LABEL_STATUS` yang memang hanya dipakai di situ ([:36-40](../../../src/components/admin/tabel-kitab.tsx#L36)):
+Salin [tabel-kitab.tsx:322-350](../../../src/components/admin/tabel-kitab.tsx#L322) apa adanya beserta `LABEL_STATUS` yang memang hanya dipakai di situ ([:43-47](../../../src/components/admin/tabel-kitab.tsx#L43)):
 
 ```tsx
 "use client"
@@ -797,18 +799,17 @@ export function DialogKonfirmasiPengguna({
 
 import { useMemo, useState, useTransition } from "react"
 import { toast } from "sonner"
-import { ubahPeranAnggota, ubahStatusAnggota } from "@/actions/pengguna"import { DaftarPengguna } from "@/components/admin/daftar-pengguna"
+import { ubahPeranAnggota, ubahStatusAnggota } from "@/actions/pengguna"
+import { DaftarPengguna } from "@/components/admin/daftar-pengguna"
 import { DialogKonfirmasiPengguna } from "@/components/admin/dialog-konfirmasi-pengguna"
 import { SaringanPengguna } from "@/components/admin/saringan-pengguna"
 import { SEMUA, hitungPengguna, saringPengguna, type BarisPengguna } from "@/lib/admin-pengguna"
 import type { Role } from "@/db/queries"
-
-export type { BarisPengguna } from "@/lib/admin-pengguna"
 ```
 
-Baris terakhir (`export type`) bukan shim untuk kode: `BarisPengguna` hanya dipakai halaman lain lewat impor tipe, dan mengekspornya kembali menjaga [admin/pengguna/page.tsx](../../../src/app/(admin)/admin/pengguna/page.tsx) serta impor masa depan tidak pecah sementara implementasinya tinggal satu tempat. Kalau reviewer menolak baris ini, hapus dan pindahkan impor ke `@/lib/admin-pengguna`.
+Wadah tidak perlu mengekspor ulang `BarisPengguna`. Sudah diverifikasi: tidak ada konsumen eksternal tipe itu di luar `kerja-pengguna.tsx`, dan [admin/pengguna/page.tsx](../../../src/app/(admin)/admin/pengguna/page.tsx) menerima prop lewat komponen induk, bukan mengimpor tipe sendiri.
 
-Isi wadah: state `kata/peran/akses/konfirmasi`, `useTransition`, `hasil = useMemo(() => saringPengguna(awal, { kata, peran, akses }), ...)`, `jumlah = useMemo(() => hitungPengguna(awal), [awal])`, lalu `ubahStatus(target)` dan `ubahPeran(target, role)` persis seperti [kerja-pengguna.tsx:83-108](../../../src/components/admin/kerja-pengguna.tsx#L83) termasuk deskripsi toast `Akun tidak dapat masuk atau membuka bookmark sampai diaktifkan lagi.` dan `Akun kembali memperoleh akses penuh sebagai member.`. JSX return hanya tiga komponen saudaranya.
+Isi wadah: state `kata/peran/akses/konfirmasi`, `useTransition`, `hasil = useMemo(() => saringPengguna(awal, { kata, peran, akses }), ...)`, `jumlah = useMemo(() => hitungPengguna(awal), [awal])`, lalu `ubahStatus(target)` dan `ubahPeran(target, role)` persis seperti [kerja-pengguna.tsx:80-108](../../../src/components/admin/kerja-pengguna.tsx#L80) termasuk deskripsi toast `Akun tidak dapat masuk atau membuka bookmark sampai diaktifkan lagi.` dan `Akun kembali memperoleh akses penuh sebagai member.`. JSX return hanya tiga komponen saudaranya.
 
 - [ ] **Step 9-12: Gerbang, bukti baris, CRLF, `npm test`**
 
@@ -825,8 +826,8 @@ Perintah sama seperti Task 1 Step 9-12. Ratchet: hapus `src/components/admin/ker
 - Create: `src/components/admin/tabel-entitas.tsx`
 - Create: `src/components/admin/dialog-hapus-entitas.tsx`
 - Modify: `src/components/admin/kerja-entitas.tsx`
-- Modify: `src/components/admin/kelola-kategori.tsx:5-9`
-- Modify: `src/components/admin/kelola-pengarang.tsx:5-9`
+- Modify: `src/components/admin/kelola-kategori.tsx:4-9`
+- Modify: `src/components/admin/kelola-pengarang.tsx:4-9`
 - Modify: `tests/ui-higienis.test.ts` (baseline)
 
 **Interfaces:**
@@ -906,7 +907,7 @@ test("hitungSlugOtomatis mengembalikan null bila bidang slug tidak menunjuk sumb
 
 - [ ] **Step 3: Implementasi minimal**
 
-`src/lib/admin-entitas.ts` (CRLF). Tipe dipindah apa adanya dari [kerja-entitas.tsx:42-58](../../../src/components/admin/kerja-entitas.tsx#L42):
+`src/lib/admin-entitas.ts` (CRLF). Tipe dipindah apa adanya dari [kerja-entitas.tsx:35-58](../../../src/components/admin/kerja-entitas.tsx#L35):
 
 ```ts
 import type { ReactNode } from "react"
@@ -1057,11 +1058,11 @@ import { toast } from "sonner"
 import type { HasilAksi } from "@/actions/tipe"
 ```
 
-Wadah mempertahankan: `kata`, `formTerbuka`, `sedangUbah`, `konfirmasiHapus`, `errorBidang`, `isPending/jalankan`, `bukaForm`, `tutupForm`, `simpan`, `hapus` (semua dari [kerja-entitas.tsx:80-137](../../../src/components/admin/kerja-entitas.tsx#L80) tanpa perubahan), plus JSX toolbar pencarian (:141-169) yang memanggil `saringEntitas(barisAwal, kata)` di `useMemo`, lalu `<TabelEntitas>`, `<Dialog>` form (:244-262), `<DialogHapusEntitas>`.
+Wadah mempertahankan: `kata`, `formTerbuka`, `sedangUbah`, `konfirmasiHapus`, `errorBidang`, `isPending/jalankan`, `bukaForm`, `tutupForm`, `simpan`, `hapus` (semua dari [kerja-entitas.tsx:81-137](../../../src/components/admin/kerja-entitas.tsx#L81) tanpa perubahan), plus JSX toolbar pencarian (:141-169) yang memanggil `saringEntitas(barisAwal, kata)` di `useMemo`, lalu `<TabelEntitas>`, `<Dialog>` form (:244-262), `<DialogHapusEntitas>`.
 
 - [ ] **Step 9: Perbarui dua konsumen tipe**
 
-[kelola-kategori.tsx:5-9](../../../src/components/admin/kelola-kategori.tsx#L5) dan [kelola-pengarang.tsx:5-9](../../../src/components/admin/kelola-pengarang.tsx#L5) berubah menjadi:
+[kelola-kategori.tsx:4-9](../../../src/components/admin/kelola-kategori.tsx#L4) dan [kelola-pengarang.tsx:4-9](../../../src/components/admin/kelola-pengarang.tsx#L4) berubah menjadi:
 
 ```tsx
 import { KerjaEntitas } from "@/components/admin/kerja-entitas"
@@ -1213,7 +1214,7 @@ test("bacaResponsUnggah memberi pesan status untuk balasan yang tidak bisa dibac
 
 - [ ] **Step 3: Implementasi minimal**
 
-`src/lib/unggah-pdf-klien.ts` (CRLF). Aturan validasi dan syarat keberhasilan harus sama persis dengan [form-kitab.tsx:129-146](../../../src/components/admin/form-kitab.tsx#L129) dan [:170-186](../../../src/components/admin/form-kitab.tsx#L170):
+`src/lib/unggah-pdf-klien.ts` (CRLF). Aturan validasi dan syarat keberhasilan harus sama persis dengan [form-kitab.tsx:122-139](../../../src/components/admin/form-kitab.tsx#L122) dan [:172-185](../../../src/components/admin/form-kitab.tsx#L172):
 
 ```ts
 import { formatUkuranBerkas } from "@/lib/format"
@@ -1295,7 +1296,11 @@ export function bacaResponsUnggah(
 
 - [ ] **Step 5: Pindahkan section metadata**
 
-Salin [form-kitab.tsx:227-384](../../../src/components/admin/form-kitab.tsx#L227) ke `bagian-metadata-kitab.tsx`. Pindahkan `const TIDAK_ADA = "tidak-ada"` ([ :42](../../../src/components/admin/form-kitab.tsx#L42)) ke berkas ini karena hanya Select syarah yang memakainya. Tanda tangan:
+Salin [form-kitab.tsx:227-384](../../../src/components/admin/form-kitab.tsx#L227) ke `bagian-metadata-kitab.tsx`. Pindahkan `const TIDAK_ADA = "tidak-ada"` ([ :42](../../../src/components/admin/form-kitab.tsx#L42)) ke berkas ini karena hanya Select syarah yang memakainya.
+
+Blok ini 158 baris JSX; dengan header `"use client"`, impor, dan tipe prop, berkasnya mendarat di sekitar 190-an baris. Ini satu-satunya hasil pecahan yang bernapas tipis di bawah batas. Kalau setelah pengukuran ternyata melewati 200, pecah lagi satu tingkat dengan memindahkan kelompok bidang "kategori, pengarang, syarah, tahun terbit, jumlah halaman" ke `bagian-hubungan-kitab.tsx` (props sama persis: `register`, `control`, `errors`, tiga daftar pilhan). Jangan memotong JSX agar angka turun; JSX pindah utuh.
+
+Tanda tangan:
 
 ```tsx
 "use client"
@@ -1360,7 +1365,7 @@ Dropzone (`onDragOver`, `onDrop`, `input type="file" className="sr-only"`), `Pro
 
 - [ ] **Step 7: Pindahkan section status publikasi**
 
-Salin [form-kitab.tsx:514-557](../../../src/components/admin/form-kitab.tsx#L514) dan `STATUS_OPSI` ([ :58-72](../../../src/components/admin/form-kitab.tsx#L58)) ke `bagian-status-publikasi.tsx`:
+Salin [form-kitab.tsx:514-557](../../../src/components/admin/form-kitab.tsx#L514) dan `STATUS_OPSI` ([ :56-72](../../../src/components/admin/form-kitab.tsx#L56)) ke `bagian-status-publikasi.tsx`:
 
 ```tsx
 export function BagianStatusPublikasi({
@@ -1378,7 +1383,7 @@ Pesan `<Globe /> Kitab akan langsung dapat dibaca publik melalui tautan reader.`
 
 - [ ] **Step 8: Rongangkan `form-kitab.tsx`**
 
-Wadah baru berisi: `useForm<KitabInput>` dengan `defaultValues` yang sama ([ :95-108](../../../src/components/admin/form-kitab.tsx#L95)), `watch`, `slugPratinjau`, `berkasDitampilkan`, `punyaPdf`, dan empat fungsi yang sudah dirampingkan:
+Wadah baru berisi: `useForm<KitabInput>` dengan `defaultValues` yang sama ([ :102-112](../../../src/components/admin/form-kitab.tsx#L102)), `watch`, `slugPratinjau`, `berkasDitampilkan`, `punyaPdf`, dan empat fungsi yang sudah dirampingkan:
 
 ```tsx
 function pilihBerkas(file: File | undefined | null) {
@@ -1434,7 +1439,7 @@ function unggahSekarang() {
 }
 ```
 
-`buangBerkas` dan `onSubmit` ([ :207-224](../../../src/components/admin/form-kitab.tsx#L207)) dipindah tanpa perubahan. JSX wadah:
+`buangBerkas` dan `onSubmit` ([ :202-223](../../../src/components/admin/form-kitab.tsx#L202)) dipindah tanpa perubahan. JSX wadah:
 
 ```tsx
 <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -1468,7 +1473,9 @@ Hapus `export type OpsiPilhan` lokal ([ :40](../../../src/components/admin/form-
 
 - [ ] **Step 9-12: Gerbang, baseline ratchet, bukti baris, `npm test`**
 
-Perintah Task 1 Step 9-12. Ratchet: hapus `src/components/admin/form-kitab.tsx` dari `daftarDasar`. Perhatian ganda: ratchet dash `daftarDasar` saat ini memuat `"src/components/admin/form-kitab.tsx": 1` (em dash di komentar [:156](../../../src/components/admin/form-kitab.tsx#L156)). Setelah pemecahan, komentar itu ikut berpindah ke berkas `form-kitab.tsx` wadah atau `bagian-berkas-pdf.tsx`; transkripsi ulang peta dash dari output test, jangan dihapus dari baseline kecuali komentarnya benar-benar sudah tidak ada.
+Perintah Task 1 Step 9-12. Ratchet: hapus `src/components/admin/form-kitab.tsx` dari `daftarDasar` ukuran.
+
+Ratchet dash ikut berubah dan bukan sekadar transkripsi. Satu-satunya dash di `form-kitab.tsx` ada di komentar [:44](../../../src/components/admin/form-kitab.tsx#L44) (`/** Balasan /api/admin/upload-pdf — hanya varian ... */`), yaitu docstring tipe `ResponsUnggah` yang pindah ke `src/lib/unggah-pdf-klien.ts`. Versi di Task 4 Step 3 menulis komentar itu ulang tanpa dash (`/** Bentuk balasan /api/admin/upload-pdf. */`), jadi setelah Task 4 selesai berkas `form-kitab.tsx` tidak menyumbang dash sama sekali dan entri `"src/components/admin/form-kitab.tsx": 1` **harus dihapus** dari `daftarDasar` dash, bukan dipindah. Transkripsi peta dash baru dari output test yang gagal; bila pemindahan ternyata membawa dash ke `unggah-pdf-klien.ts`, itu berarti komentar tidak ditulis ulang sesuai Step 3 dan yang harus dibetulkan adalah komentarnya.
 
 ---
 
