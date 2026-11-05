@@ -1,9 +1,10 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { AlertTriangle, FileText, LoaderCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { useUrlPdfSegar } from "@/components/reader/use-url-pdf-segar"
 import { rasioKanvas, skalaHalaman } from "@/lib/baca"
 import { getDocument, GlobalWorkerOptions } from "pdfjs-dist"
 import type { PDFDocumentProxy, RenderTask } from "pdfjs-dist"
@@ -14,7 +15,7 @@ GlobalWorkerOptions.workerSrc = "/pdfjs/pdf.worker.min.mjs"
 type Status = "memuat" | "siap" | "gagal"
 
 export function HalamanPdf({
-  url,
+  url: urlAwal,
   slug,
   judul,
   halaman,
@@ -28,12 +29,29 @@ export function HalamanPdf({
   zoom: number
   sepia: boolean
 }) {
+  const { url, sedangMenyegarkan, segarkan, tandaiBerhasil } = useUrlPdfSegar(slug, urlAwal)
   const kanvas = useRef<HTMLCanvasElement | null>(null)
   const wadah = useRef<HTMLDivElement | null>(null)
   const renderBerjalan = useRef<RenderTask | null>(null)
   const [dokumen, setDokumen] = useState<PDFDocumentProxy | null>(null)
   const [status, setStatus] = useState<Status>("memuat")
   const [percobaan, setPercobaan] = useState(0)
+
+  /**
+   * Satu penyegaran URL dicoba lebih dulu sebelum menyerah. Bila URL berganti,
+   * efek pemuatan jalan ulang sendiri karena `url` ada di daftar dependensinya;
+   * bila tidak berganti, keadaan gagal baru dipasang supaya panelnya tidak
+   * berkedip untuk hasil yang nihil.
+   */
+  const cobaSegarkan = useCallback(
+    (belumBatal: () => boolean) => {
+      void segarkan(true).then((berhasil) => {
+        if (!belumBatal() || berhasil) return
+        setStatus("gagal")
+      })
+    },
+    [segarkan],
+  )
 
   useEffect(() => {
     if (!url) return
@@ -48,45 +66,46 @@ export function HalamanPdf({
         }
         setDokumen(baru)
         setStatus("siap")
+        tandaiBerhasil()
       })
       .catch(() => {
-        if (!dibatalkan) setStatus("gagal")
+        if (!dibatalkan) cobaSegarkan(() => !dibatalkan)
       })
     return () => {
       dibatalkan = true
       void tugas.destroy()
       setDokumen(null)
     }
-  }, [url, percobaan])
+  }, [url, percobaan, cobaSegarkan, tandaiBerhasil])
 
   useEffect(() => {
     if (!dokumen || status !== "siap") return
     let dibatalkan = false
     void (async () => {
-      const nomor = Math.min(Math.max(1, halaman), dokumen.numPages)
-      const halamanPdf = await dokumen.getPage(nomor)
-      const kanvasEl = kanvas.current
-      const wadahEl = wadah.current
-      if (dibatalkan || !kanvasEl || !wadahEl) return
-
-      const dasar = halamanPdf.getViewport({ scale: 1 })
-      const tampilan = halamanPdf.getViewport({
-        scale: skalaHalaman(wadahEl.clientWidth - 16, dasar.width, zoom),
-      })
-      const rasio = rasioKanvas(window.devicePixelRatio)
-      kanvasEl.width = Math.floor(tampilan.width * rasio)
-      kanvasEl.height = Math.floor(tampilan.height * rasio)
-      kanvasEl.style.width = `${tampilan.width}px`
-      kanvasEl.style.height = `${tampilan.height}px`
-
-      renderBerjalan.current?.cancel()
-      const tugas = halamanPdf.render({
-        canvas: kanvasEl,
-        viewport: tampilan,
-        transform: rasio > 1 ? [rasio, 0, 0, rasio, 0, 0] : undefined,
-      })
-      renderBerjalan.current = tugas
       try {
+        const nomor = Math.min(Math.max(1, halaman), dokumen.numPages)
+        const halamanPdf = await dokumen.getPage(nomor)
+        const kanvasEl = kanvas.current
+        const wadahEl = wadah.current
+        if (dibatalkan || !kanvasEl || !wadahEl) return
+
+        const dasar = halamanPdf.getViewport({ scale: 1 })
+        const tampilan = halamanPdf.getViewport({
+          scale: skalaHalaman(wadahEl.clientWidth - 16, dasar.width, zoom),
+        })
+        const rasio = rasioKanvas(window.devicePixelRatio)
+        kanvasEl.width = Math.floor(tampilan.width * rasio)
+        kanvasEl.height = Math.floor(tampilan.height * rasio)
+        kanvasEl.style.width = `${tampilan.width}px`
+        kanvasEl.style.height = `${tampilan.height}px`
+
+        renderBerjalan.current?.cancel()
+        const tugas = halamanPdf.render({
+          canvas: kanvasEl,
+          viewport: tampilan,
+          transform: rasio > 1 ? [rasio, 0, 0, rasio, 0, 0] : undefined,
+        })
+        renderBerjalan.current = tugas
         await tugas.promise
       } catch (error) {
         // Render lama sengaja dibatalkan saat halaman atau zoom berganti; penolakan
@@ -94,15 +113,20 @@ export function HalamanPdf({
         // kadang menolak dengan objek yang bukan Error, dan membaca `.name` pada
         // nilai null akan melempar di dalam catch.
         const nama = error instanceof Error ? error.name : ""
-        if (!dibatalkan && nama !== "RenderingCancelledException") {
-          setStatus("gagal")
-        }
+        if (dibatalkan || nama === "RenderingCancelledException") return
+        // Halaman yang dibuka setelah masa berlaku token habis ditolak CDN. Ini
+        // jalur yang paling sering kena pada sesi panjang, karena dokumennya
+        // sendiri sudah terlanjur terbuka dengan URL yang lama. Status sengaja
+        // tidak diubah di sini: `status` ada di daftar dependensi efek ini, jadi
+        // satu setStatus akan menjalankan cleanup dan membuat `dibatalkan` true
+        // sebelum penyegaran selesai, lalu panel gagal tidak pernah muncul.
+        cobaSegarkan(() => !dibatalkan)
       }
     })()
     return () => {
       dibatalkan = true
     }
-  }, [dokumen, halaman, zoom, status])
+  }, [dokumen, halaman, zoom, status, cobaSegarkan])
 
   if (!url) {
     return (
@@ -127,13 +151,13 @@ export function HalamanPdf({
         className={cn(
           "rounded-xl bg-white shadow-[0_24px_60px_-24px_rgb(0_0_0/0.8)] transition-opacity duration-200",
           sepia && "page-sepia",
-          status === "siap" ? "opacity-100" : "opacity-0",
+          status === "siap" && !sedangMenyegarkan ? "opacity-100" : "opacity-0",
         )}
       />
-      {status === "memuat" && (
+      {(status === "memuat" || (status === "siap" && sedangMenyegarkan)) && (
         <p className="absolute inset-x-0 top-1/3 flex flex-col items-center gap-2 text-sm text-muted-foreground">
           <LoaderCircle className="size-6 animate-spin" strokeWidth={1.75} />
-          Memuat halaman {halaman}…
+          {sedangMenyegarkan ? "Menyegarkan naskah…" : `Memuat halaman ${halaman}…`}
         </p>
       )}
       {status === "gagal" && (
@@ -145,7 +169,17 @@ export function HalamanPdf({
           <p className="text-sm leading-relaxed text-muted-foreground">
             Berkas PDF-nya mungkin belum tersedia di penyimpanan atau jaringan sedang terputus.
           </p>
-          <Button size="sm" onClick={() => setPercobaan((n) => n + 1)}>
+          <Button
+            size="sm"
+            disabled={sedangMenyegarkan}
+            onClick={() =>
+              void segarkan(false).then((berhasil) => {
+                // Tanpa ini panel gagal berkedip satu frame sebelum efek muat jalan.
+                if (berhasil) setStatus("memuat")
+                else setPercobaan((n) => n + 1)
+              })
+            }
+          >
             Muat ulang
           </Button>
           <a

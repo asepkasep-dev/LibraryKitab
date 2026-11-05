@@ -14,6 +14,18 @@ export const skemaId = z.uuid("Identitas data tidak dikenali.")
  */
 export const PESAN_TIPE = "Format kiriman tidak sesuai, periksa kembali isian Anda."
 
+/**
+ * Slug datang dari URL reader sekaligus dari formulir admin. Bentuknya dikunci di
+ * satu tempat agar aksi publik tidak berangkat ke database dengan nilai yang pasti
+ * tidak cocok dengan baris mana pun.
+ */
+export const skemaSlug = z
+  .string({ error: PESAN_TIPE })
+  .trim()
+  .min(3, "Slug minimal 3 karakter.")
+  .max(60, "Slug maksimal 60 karakter.")
+  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Slug hanya huruf kecil, angka, dan tanda hubung.")
+
 export const skemaStatusKitab = z.enum(
   ["draft", "published", "archived"],
   "Status kitab tidak dikenali.",
@@ -98,12 +110,7 @@ export const skemaKategori = z.object({
     .trim()
     .min(3, "Nama kategori minimal 3 karakter.")
     .max(60, "Nama kategori maksimal 60 karakter."),
-  slug: z
-    .string({ error: PESAN_TIPE })
-    .trim()
-    .min(3, "Slug minimal 3 karakter.")
-    .max(60, "Slug maksimal 60 karakter.")
-    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Slug hanya huruf kecil, angka, dan tanda hubung."),
+  slug: skemaSlug,
   deskripsi: z
     .string({ error: PESAN_TIPE })
     .trim()

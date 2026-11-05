@@ -8,6 +8,7 @@ import {
   arahGeser,
   bacaPreferensiBaca,
   batasiHalaman,
+  putuskanSegarkanUrl,
   teksPillProgres,
   tujuanLompatBaca,
   tulisPreferensiBaca,
@@ -172,4 +173,65 @@ test("pil progres punya satu kalimat per status", () => {
   assert.equal(teksPillProgres("gagal", 41, 160), "Progres belum tersimpan")
   assert.equal(teksPillProgres("tersimpan", 41, 160), "Progres di halaman 41 · 26%")
   assert.equal(teksPillProgres("diam", 41, 160), "Progres di halaman 41 · 26%")
+})
+
+/* ---------------------------- penyegaran url baca ---------------------------- */
+
+test("putuskanSegarkanUrl menukar URL baru saat belum ada penyegaran otomatis", () => {
+  // Tombol "Muat ulang" di Task 4 memanggil dengan `sudahOtomatis: false` walau
+  // penjaga internal sudah terpakai, jadi permintaan manusia tidak pernah ikut
+  // ditolak. Fungsi murni ini tidak bisa membedakan keduanya, dan memang tidak
+  // perlu: pembedanya ada di pemanggil.
+  assert.deepEqual(
+    putuskanSegarkanUrl({
+      sudahOtomatis: false,
+      urlAktif: "https://cdn.pustakakitab.id/lama",
+      hasil: { ok: true, url: "https://cdn.pustakakitab.id/baru" },
+    }),
+    { tindak: "tukar", url: "https://cdn.pustakakitab.id/baru" },
+  )
+})
+
+test("putuskanSegarkanUrl menolak penyegaran otomatis kedua dalam satu episode", () => {
+  // Tanpa penjaga ini, URL yang memang mati memicu unduh ulang tanpa henti.
+  assert.deepEqual(
+    putuskanSegarkanUrl({
+      sudahOtomatis: true,
+      urlAktif: "https://cdn.pustakakitab.id/lama",
+      hasil: { ok: true, url: "https://cdn.pustakakitab.id/baru" },
+    }),
+    { tindak: "diam" },
+  )
+})
+
+test("putuskanSegarkanUrl diam saat server menolak atau tidak mengembalikan URL", () => {
+  assert.deepEqual(
+    putuskanSegarkanUrl({
+      sudahOtomatis: false,
+      urlAktif: "https://cdn.pustakakitab.id/lama",
+      hasil: { ok: false, url: null },
+    }),
+    { tindak: "diam" },
+  )
+  assert.deepEqual(
+    putuskanSegarkanUrl({
+      sudahOtomatis: false,
+      urlAktif: "https://cdn.pustakakitab.id/lama",
+      hasil: { ok: true, url: null },
+    }),
+    { tindak: "diam" },
+  )
+})
+
+test("putuskanSegarkanUrl diam saat URL yang kembali sama dengan yang aktif", () => {
+  // Menukar URL yang identik tidak memperbaiki apa pun, hanya memicu satu siklus
+  // muat ulang percuma karena `url` menjadi dependensi efek pemuatan.
+  assert.deepEqual(
+    putuskanSegarkanUrl({
+      sudahOtomatis: false,
+      urlAktif: "https://cdn.pustakakitab.id/sama",
+      hasil: { ok: true, url: "https://cdn.pustakakitab.id/sama" },
+    }),
+    { tindak: "diam" },
+  )
 })

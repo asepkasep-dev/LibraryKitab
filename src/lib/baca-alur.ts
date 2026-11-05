@@ -95,3 +95,30 @@ export function teksPillProgres(
   if (status === "gagal") return "Progres belum tersimpan"
   return `Progres di halaman ${halamanTersimpan} · ${hitungPersentase(halamanTersimpan, total)}%`
 }
+
+export type KeputusanSegarkanUrl =
+  | { tindak: "tukar"; url: string }
+  | { tindak: "diam" }
+
+/**
+ * Menentukan apakah URL baca hasil penanda-tanganan ulang layak dipasang.
+ *
+ * Tiga alasan untuk diam: server menolak, kitab memang tidak punya PDF, atau URL
+ * yang kembali sama dengan yang sedang aktif. Alasan keempat adalah penjaga loop:
+ * penyegaran otomatis hanya boleh sekali sampai dokumen berhasil dimuat, sebab
+ * pdf.js mengunduh ulang seluruh berkas setiap kali URL berganti.
+ */
+export function putuskanSegarkanUrl({
+  sudahOtomatis,
+  urlAktif,
+  hasil,
+}: {
+  sudahOtomatis: boolean
+  urlAktif: string | null
+  hasil: { ok: boolean; url: string | null }
+}): KeputusanSegarkanUrl {
+  if (!hasil.ok || hasil.url === null) return { tindak: "diam" }
+  if (hasil.url === urlAktif) return { tindak: "diam" }
+  if (sudahOtomatis) return { tindak: "diam" }
+  return { tindak: "tukar", url: hasil.url }
+}

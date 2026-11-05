@@ -11,7 +11,7 @@ import {
   simpanProgresBaca,
   ubahCatatan,
 } from "@/db/mutations"
-import { kitabTayangById } from "@/db/queries"
+import { kitabTayangById, kitabTayangBySlug } from "@/db/queries"
 import { butuhMemberAksi } from "@/lib/auth"
 import { hitungPersentase } from "@/lib/format"
 import {
@@ -20,8 +20,9 @@ import {
   skemaKitabHalaman,
   skemaLabelBookmark,
 } from "@/lib/baca"
-import { skemaId } from "@/lib/validasi"
-import { gagal, sukses, type HasilAksi } from "./tipe"
+import { skemaId, skemaSlug } from "@/lib/validasi"
+import { urlBaca } from "@/lib/bunny"
+import { gagal, pesanAman, sukses, type HasilAksi } from "./tipe"
 
 type InputHalaman = { kitabId: string; halaman: number }
 
@@ -173,5 +174,31 @@ export async function hapusCatatanId(idMentah: string): Promise<HasilAksi> {
     return sukses(id, "Catatan dihapus.")
   } catch (error) {
     return gagal(error)
+  }
+}
+
+export type HasilUrlBaca =
+  | { ok: true; url: string | null }
+  | { ok: false; pesan: string }
+
+const PESAN_GAGAL_URL = "Naskah belum dapat dimuat ulang. Coba lagi sebentar lagi."
+
+/**
+ * Menandatangani ulang URL baca saat sesi membaca melewati masa berlaku token CDN.
+ *
+ * Aksi ini tidak menuntut sesi karena reader memang boleh dibuka pengunjung
+ * anonim. Penyaringnya `kitabTayangBySlug`: kitab yang belum atau tidak lagi
+ * tayang menghasilkan `null`, jadi aksi ini tidak menjadi jalan belakang untuk
+ * membaca naskah yang belum diterbitkan. `HasilAksi` tidak dipakai karena tidak
+ * punya tempat untuk URL, dan menaruh URL di `pesan` akan menampilkannya di toast.
+ */
+export async function perpanjangUrlBaca(slugMentah: string): Promise<HasilUrlBaca> {
+  try {
+    const slug = skemaSlug.parse(slugMentah)
+    const target = await kitabTayangBySlug(slug)
+    if (!target) return { ok: false, pesan: "Kitab ini tidak tersedia untuk dibaca." }
+    return { ok: true, url: urlBaca(target.urlPdf) }
+  } catch (error) {
+    return { ok: false, pesan: pesanAman(error, PESAN_GAGAL_URL) }
   }
 }

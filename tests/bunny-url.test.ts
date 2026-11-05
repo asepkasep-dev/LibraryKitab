@@ -134,3 +134,16 @@ test("cdnSiapPublikasi hanya memandang BUNNY_CDN_HOSTNAME", () => {
     assert.equal(cdnSiapPublikasi(), true)
   })
 })
+
+test("masa berlaku bawaan URL tanda tangan adalah 3600 detik", () => {
+  // `denganEnv` menghapus semua kunci Bunny lebih dulu, jadi yang terbaca di sini
+  // adalah default di src/lib/bunny.ts, bukan nilai dari .env.local.
+  denganEnv({ BUNNY_CDN_HOSTNAME: HOST, BUNNY_CDN_TOKEN_KEY: "token-cdn-dummy" }, () => {
+    const hasil = urlBaca(TERSIMPAN, SEKARANG)
+    assert.ok(hasil)
+
+    const hex = (Math.floor(SEKARANG / 1000) + 3600).toString(16)
+    assert.ok(hasil.startsWith(`https://${HOST}/${hex}${PATH}?token=`), hasil)
+    assert.match(hasil, /token=[0-9a-f]{64}$/)
+  })
+})

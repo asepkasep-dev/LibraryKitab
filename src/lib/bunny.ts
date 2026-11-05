@@ -38,7 +38,9 @@ function bacaKonfigurasiCdn(): KonfigurasiCdn {
   return {
     hostname,
     token: process.env.BUNNY_CDN_TOKEN_KEY ?? "",
-    kedaluwarsaDetik: angkaLingkungan("BUNNY_SIGNED_URL_EXPIRY_SECONDS", 900),
+    // pdf.js mengikat URL sekali saat dokumen dibuka, jadi masa berlaku harus
+    // lebih panjang dari satu sesi baca wajar; 15 menit terbukti terlalu sempit.
+    kedaluwarsaDetik: angkaLingkungan("BUNNY_SIGNED_URL_EXPIRY_SECONDS", 3600),
   }
 }
 
