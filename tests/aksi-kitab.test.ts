@@ -356,17 +356,63 @@ test("fan atau pengarang yang tidak terdaftar ditolak", async () => {
   assert.equal(lain.pesan, "Pilih pengarang yang masih terdaftar.")
 })
 
-test("slug bentrok dinomori dan kitab sendiri tidak memblokir", async () => {
+test("menyunting tanpa mengubah judul tidak menyentuh alamat dan tidak bertanya ke database", async () => {
   aturUlang()
   D.kitab = barisKitab()
   D.slugTerpakai = new Set(["tafsir-al-jalalain"])
   const hasil = await (await aksi()).simpanKitab(ID_KITAB, inputKitab())
   assert.equal(hasil.ok, true)
+  assert.deepEqual(D.slugTanya, [], "Alamat yang tidak berubah tidak perlu diperiksa ke database.")
+  assert.equal(D.tulisIsi[0]?.input.slug, "tafsir-al-jalalain")
+  assert.deepEqual(D.revalid, harapanSegarkan("tafsir-al-jalalain"))
+})
+
+test("ganti judul ke alamat yang bebas memindahkan slug dan menyegarkan alamat lama juga", async () => {
+  aturUlang()
+  D.kitab = barisKitab()
+  const hasil = await (await aksi()).simpanKitab(ID_KITAB, inputKitab({ judulLatin: "Risalah Adab" }))
+  assert.equal(hasil.ok, true)
+  assert.equal(D.slugTanya[0]?.kecualiId, ID_KITAB)
+  assert.equal(D.tulisIsi[0]?.input.slug, "risalah-adab")
+  assert.deepEqual(D.revalid, [
+    ...harapanSegarkan("risalah-adab"),
+    ...harapanSegarkan("tafsir-al-jalalain"),
+  ])
+})
+
+test("judul yang menabrak kitab lain ditolak, tidak dinobatkan jadi slug berangka", async () => {
+  aturUlang()
+  D.kitab = barisKitab({ slug: "kitab-pertama" })
+  D.slugTerpakai = new Set(["tafsir-al-jalalain"])
+  const hasil = await (await aksi()).simpanKitab(ID_KITAB, inputKitab())
+  assert.equal(hasil.ok, false)
+  assert.equal(
+    hasil.pesan,
+    'Judul Latin ini sudah dipakai kitab lain sebagai alamat "tafsir-al-jalalain". Ubah judulnya lebih dulu.',
+  )
+  assert.equal(D.tulisIsi.length, 0, "Penolakan terjadi sebelum satu tulisan pun.")
+  assert.deepEqual(D.revalid, [])
+})
+
+test("warisan penomoran otomatis menahan alamat lamanya saat sunting", async () => {
+  aturUlang()
+  D.kitab = barisKitab({ slug: "tafsir-al-jalalain-2" })
+  D.slugTerpakai = new Set(["tafsir-al-jalalain"])
+  const hasil = await (await aksi()).simpanKitab(ID_KITAB, inputKitab())
+  assert.equal(hasil.ok, true)
+  assert.equal(D.tulisIsi[0]?.input.slug, "tafsir-al-jalalain-2")
+})
+
+test("slug bentrok pada kitab baru tetap dinomori", async () => {
+  aturUlang()
+  D.slugTerpakai = new Set(["tafsir-al-jalalain"])
+  const hasil = await (await aksi()).simpanKitab(null, inputKitab())
+  assert.equal(hasil.ok, true)
   assert.deepEqual(
     D.slugTanya.map((tanya) => tanya.slug),
     ["tafsir-al-jalalain", "tafsir-al-jalalain-2"]
   )
-  assert.equal(D.slugTanya[0]?.kecualiId, ID_KITAB)
+  assert.equal(D.slugTanya[0]?.kecualiId, undefined)
   assert.equal(D.tulisIsi[0]?.input.slug, "tafsir-al-jalalain-2")
 })
 
@@ -510,6 +556,48 @@ test("kitab dihapus: alamat lama kitab itu ikut disegarkan", async () => {
   const hasil = await (await aksi()).hapusKitab(ID_KITAB)
   assert.equal(hasil.ok, true)
   assert.deepEqual(D.revalid, harapanSegarkan("kitab-yang-dihapus"))
+})
+
+test("kitab dihapus: berkas PDF yang tidak dirujuk kitab lain ikut dilepas", async () => {
+  aturUlang()
+  D.kitab = barisKitab({ slug: "kitab-yang-dihapus" })
+  const hasil = await (await aksi()).hapusKitab(ID_KITAB)
+  assert.equal(hasil.ok, true)
+  assert.deepEqual(D.hapusIsi, ["pdf/lama-111111.pdf"])
+})
+
+test("berkas yang masih dirujuk kitab lain tidak ikut terhapus", async () => {
+  aturUlang()
+  D.kitab = barisKitab({ slug: "kitab-yang-dihapus" })
+  D.dipakaiKitabLain = true
+  const hasil = await (await aksi()).hapusKitab(ID_KITAB)
+  assert.equal(hasil.ok, true)
+  assert.deepEqual(D.hapusIsi, [])
+})
+
+test("kitab tanpa berkas tidak memanggil penghapusan penyimpanan", async () => {
+  aturUlang()
+  D.kitab = barisKitab({ slug: "draf-tanpa-pdf", urlPdf: "" })
+  const hasil = await (await aksi()).hapusKitab(ID_KITAB)
+  assert.equal(hasil.ok, true)
+  assert.deepEqual(D.hapusIsi, [])
+})
+
+test("pembersihan berkas yang gagal tidak membatalkan penghapusan", async () => {
+  aturUlang()
+  D.kitab = barisKitab({ slug: "kitab-yang-dihapus" })
+  D.hapusGagal = true
+  const hasil = await tanpaLog(async () => (await aksi()).hapusKitab(ID_KITAB))
+  assert.equal(hasil.ok, true)
+  assert.deepEqual(D.revalid, harapanSegarkan("kitab-yang-dihapus"))
+})
+
+test("penghapusan yang ditolak database tidak melepas berkas", async () => {
+  aturUlang()
+  D.kitab = barisKitab({ slug: "kitab-hilang" })
+  D.hapusBarisError = new Error("Kitab tidak ditemukan di database, tidak ada yang dihapus.")
+  await tanpaLog(async () => (await aksi()).hapusKitab(ID_KITAB))
+  assert.deepEqual(D.hapusIsi, [], "Berkas hanya boleh dilepas setelah barisnya benar-benar hilang.")
 })
 
 test("hapus nol baris dilaporkan gagal dan tidak menyegarkan halaman", async () => {

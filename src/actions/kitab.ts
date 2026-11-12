@@ -33,16 +33,33 @@ function segarkan(slug?: string) {
   }
 }
 
-/** Slug unik: judul dilucukan lalu diberi penomoran bila sudah dipakai. */
-async function siapkanSlug(judul: string, kecualiId?: string) {
-  const dasar = slugify(judul) || "kitab"
+/** Slug kitab baru: judul dilucukan lalu diberi penomoran bila sudah dipakai. */
+async function slugUntukKitabBaru(dasar: string) {
   let kandidat = dasar
   for (let nomor = 2; nomor <= 50; nomor++) {
-    const terpakai = await slugKitabTerpakai(kandidat, kecualiId)
-    if (!terpakai) return kandidat
+    if (!(await slugKitabTerpakai(kandidat))) return kandidat
     kandidat = `${dasar}-${nomor}`
   }
   throw new Error("Slug tidak dapat dibuat otomatis. Ubah judul Latin kitab.")
+}
+
+/**
+ * Slug hasil menyunting. Mengganti alamat memutus tautan `/kitab/*` dan `/baca/*`
+ * yang sudah dibagikan, dan `revalidatePath` hanya menyasar slug baru sehingga
+ * yang lama menyajikan konten basi. Karena itu judul yang menabrak kitab lain
+ * ditolak, sama seperti kategori dan pengarang.
+ *
+ * Pengecualian: baris warisan penomoran otomatis (`judul-2`) menahan alamat
+ * lamanya. Menolaknya berarti suntingan yang tidak menyentuh judul ikut
+ * tersumbat permanen, dan itu bukan kerugian yang boleh dibebankan ke pengelola.
+ */
+async function slugUntukSuntingan(dasar: string, slugLama: string, idKitab: string) {
+  if (dasar === slugLama) return dasar
+  if (!(await slugKitabTerpakai(dasar, idKitab))) return dasar
+  if (slugLama.replace(/-\d+$/, "") === dasar) return slugLama
+  throw new Error(
+    `Judul Latin ini sudah dipakai kitab lain sebagai alamat "${dasar}". Ubah judulnya lebih dulu.`,
+  )
 }
 
 /** Kategori dan pengarang wajib ada; FK menolak nilai asing dengan pesan kasar. */
@@ -60,15 +77,20 @@ async function pastikanRelasi(kategoriId: string, pengarangId: string, syarahId:
  * tersimpan sengaja tidak dihapus: pada driver HTTP kita tidak bisa memastikan
  * penulisannya benar-benar batal, dan pengelola masih butuh berkas itu saat coba lagi.
  */
+async function buangBerkas(path: string) {
+  if (!path) return
+  try {
+    if (!(await hapusBerkas(path))) console.error("[kitab] berkas gagal dihapus:", path)
+  } catch (error) {
+    console.error("[kitab] pembersihan berkas gagal:", path, error)
+  }
+}
+
 async function buangBerkasLama(urlLama: string, kecualiId: string, pathBaru: string) {
   const pathLama = pathDariUrl(urlLama)
   if (!pathLama || pathLama === pathBaru) return
   if (await urlPdfDipakaiKitabLain(urlLama, kecualiId)) return
-  try {
-    if (!(await hapusBerkas(pathLama))) console.error("[kitab] berkas lama gagal dihapus:", pathLama)
-  } catch (error) {
-    console.error("[kitab] pembersihan berkas lama gagal:", pathLama, error)
-  }
+  await buangBerkas(pathLama)
 }
 
 export async function simpanKitab(
@@ -115,7 +137,11 @@ export async function simpanKitab(
       }
     }
 
-    const slug = await siapkanSlug(input.judulLatin, idKitab ?? undefined)
+    const dasarSlug = slugify(input.judulLatin) || "kitab"
+    const slug =
+      idKitab && lama
+        ? await slugUntukSuntingan(dasarSlug, lama.slug, idKitab)
+        : await slugUntukKitabBaru(dasarSlug)
     const tersimpanId = await tulisKitab({
       id: idKitab,
       input: { ...input, jumlahHalaman, slug, urlPdf, ukuranPdfByte },
@@ -131,6 +157,9 @@ export async function simpanKitab(
       await buangBerkasLama(lama.urlPdf, tersimpanId, metaBaru.path)
     }
     segarkan(slug)
+    // Alamat lama tetap ada di cache ISR sampai kedaluwarsa bila suntingan
+    // memindahkan kitab; disegarkan juga supaya tidak menyajikan konten basi.
+    if (lama?.slug && lama.slug !== slug) segarkan(lama.slug)
 
     return sukses(
       tersimpanId,
@@ -191,6 +220,14 @@ export async function hapusKitab(id: string): Promise<HasilAksi> {
     const target = await kitabById(idKitab)
     if (!target) return { ok: false, pesan: "Kitab tidak ditemukan di database." }
 
+    // Ditanyakan sebelum barisnya hilang: satu berkas boleh dirujuk lebih dari
+    // satu kitab, dan sesudah baris ini terhapus tidak ada lagi pegangan untuk
+    // membedakan rujukan hidup dari yang yatim.
+    const pathBerkas = target.urlPdf ? pathDariUrl(target.urlPdf) : ""
+    const dirujukKitabLain = target.urlPdf
+      ? await urlPdfDipakaiKitabLain(target.urlPdf, idKitab)
+      : false
+
     await hapusBarisKitab(idKitab, {
       adminId: pengelola.id,
       aksi: "kitab_dihapus",
@@ -198,6 +235,7 @@ export async function hapusKitab(id: string): Promise<HasilAksi> {
       detail: `${target.judulLatin} (${target.slug})`,
     })
     segarkan(target.slug)
+    if (pathBerkas && !dirujukKitabLain) await buangBerkas(pathBerkas)
 
     return sukses(idKitab, `Kitab “${target.judulLatin}” dihapus beserta bookmark dan catatannya.`)
   } catch (error) {
