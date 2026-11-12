@@ -49,6 +49,10 @@ const D = {
   statusIsi: [] as { id: string; status: string; log: LogIsian }[],
   hapusIsi: [] as string[],
   dipakaiKitabLain: false,
+  /** Argumen pertanyaan rujukan berkas, supaya `kecualiId` yang salah ikut terasa. */
+  rujukTanya: [] as { url: string; kecualiId: string }[],
+  /** Langkah yang selesai, urut. Urutan ini yang menjaga berkas tidak hilang mendahului tulisan. */
+  urutan: [] as string[],
   hapusGagal: false,
   /** Dilempar mock `hapusKitab` untuk meniru penolakan nol baris dari database. */
   hapusBarisError: null as Error | null,
@@ -68,6 +72,8 @@ function aturUlang() {
   D.statusIsi = []
   D.hapusIsi = []
   D.dipakaiKitabLain = false
+  D.rujukTanya = []
+  D.urutan = []
   D.hapusGagal = false
   D.hapusBarisError = null
   D.revalid = []
@@ -98,6 +104,7 @@ async function daftarkanMock() {
       hapusBerkas: async (path: string) => {
         if (D.hapusGagal) throw new Error("Bunny menolak penghapusan")
         D.hapusIsi.push(path)
+        D.urutan.push("hapus-berkas")
         return true
       },
     },
@@ -116,6 +123,7 @@ async function daftarkanMock() {
       }) => {
         if (D.tulisError) throw D.tulisError
         D.tulisIsi.push({ id, input, log })
+        D.urutan.push("tulis")
         return id ?? ID_KITAB
       },
       ubahStatusKitab: async (id: string, status: string, log: LogIsian) => {
@@ -123,12 +131,17 @@ async function daftarkanMock() {
       },
       hapusKitab: async () => {
         if (D.hapusBarisError) throw D.hapusBarisError
+        D.urutan.push("hapus-baris")
       },
       slugKitabTerpakai: async (slug: string, kecualiId?: string) => {
         D.slugTanya.push({ slug, kecualiId })
         return D.slugTerpakai.has(slug)
       },
-      urlPdfDipakaiKitabLain: async () => D.dipakaiKitabLain,
+      urlPdfDipakaiKitabLain: async (url: string, kecualiId: string) => {
+        D.rujukTanya.push({ url, kecualiId })
+        D.urutan.push("tanya-rujukan")
+        return D.dipakaiKitabLain
+      },
     },
   })
 
@@ -459,6 +472,30 @@ test("berkas lama dihapus begitu path berganti", async () => {
   assert.deepEqual(D.hapusIsi, ["pdf/lama-111111.pdf"])
 })
 
+test("berkas lama dilepas hanya setelah tulisan commit", async () => {
+  aturUlang()
+  D.kitab = barisKitab()
+  const hasil = await (await aksi()).simpanKitab(ID_KITAB, inputKitab(), {
+    tanda: buatTandaBerkas(metaUji({ kitabId: ID_KITAB })),
+  })
+  assert.equal(hasil.ok, true)
+  assert.deepEqual(D.urutan, ["tulis", "tanya-rujukan", "hapus-berkas"])
+})
+
+test("tulisan yang gagal tidak melepas berkas lama", async () => {
+  aturUlang()
+  D.kitab = barisKitab()
+  D.tulisError = new Error("Kitab tidak ditemukan di database, perubahan tidak tersimpan.")
+  const hasil = await tanpaLog(async () =>
+    (await aksi()).simpanKitab(ID_KITAB, inputKitab(), {
+      tanda: buatTandaBerkas(metaUji({ kitabId: ID_KITAB })),
+    })
+  )
+  assert.equal(hasil.ok, false)
+  assert.deepEqual(D.hapusIsi, [], "Berkas yang masih dirujuk kitab tidak boleh hilang karena tulisan gagal.")
+  assert.deepEqual(D.urutan, [])
+})
+
 test("berkas yang masih dipakai kitab lain tidak dihapus", async () => {
   aturUlang()
   D.kitab = barisKitab()
@@ -564,6 +601,19 @@ test("kitab dihapus: berkas PDF yang tidak dirujuk kitab lain ikut dilepas", asy
   const hasil = await (await aksi()).hapusKitab(ID_KITAB)
   assert.equal(hasil.ok, true)
   assert.deepEqual(D.hapusIsi, ["pdf/lama-111111.pdf"])
+})
+
+test("rujukan berkas ditanya sebelum baris hilang, dengan id kitab yang benar", async () => {
+  aturUlang()
+  D.kitab = barisKitab({ slug: "kitab-yang-dihapus" })
+  const hasil = await (await aksi()).hapusKitab(ID_KITAB)
+  assert.equal(hasil.ok, true)
+  assert.deepEqual(D.rujukTanya, [{ url: urlUji("pdf/lama-111111.pdf"), kecualiId: ID_KITAB }])
+  assert.deepEqual(
+    D.urutan,
+    ["tanya-rujukan", "hapus-baris", "hapus-berkas"],
+    "Sesudah baris hilang tidak ada lagi pegangan untuk membedakan rujukan hidup dari yang yatim.",
+  )
 })
 
 test("berkas yang masih dirujuk kitab lain tidak ikut terhapus", async () => {

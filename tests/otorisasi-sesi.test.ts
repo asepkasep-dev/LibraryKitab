@@ -57,7 +57,7 @@ function akun(role: Role, status: StatusPengguna): PenggunaVe {
   return {
     id: PENGGUNA_ID,
     clerkId: CLERK_ID,
-    email: "santri@pesantren.id",
+    email: "santri@example.com",
     namaLengkap: "Santri Uji",
     jenisPeran: "santri",
     kelas: "10 A",
@@ -70,7 +70,7 @@ function akun(role: Role, status: StatusPengguna): PenggunaVe {
 
 function aturUlang() {
   S.userId = CLERK_ID
-  S.klaim = { email: "santri@pesantren.id" }
+  S.klaim = { email: "santri@example.com" }
   S.tersimpan = null
   S.tanyaClerkId = []
   S.sinkron = []
@@ -79,8 +79,9 @@ function aturUlang() {
 // Mock didaftarkan sekali sebelum modul diimpor: tsx mengemas file test sebagai
 // CJS sehingga `await` di puncak tidak tersedia.
 async function daftarkanMock() {
-  // `cache()` React mengingat hasil per proses. Tanpa dilepas, pemanggilan kedua
-  // menerima sesi pemanggilan pertama dan tiap test tidak lagi independen.
+  // `cache()` React memo lewat dispatcher RSC per request pada build react-server,
+  // dan menjadi pembungkus identitas pada build biasa. Stub identitas menjaga tiap
+  // test independen tanpa bergantung pada ada tidaknya dispatcher di proses ini.
   mock.module(urlModul("react"), { namedExports: { cache: (fn: unknown) => fn } })
   mock.module(urlModul("@clerk/nextjs/server"), {
     namedExports: {
@@ -144,7 +145,7 @@ test("pengunjung anonim tidak masuk dan tidak punya hak tulis", async () => {
 
 test("peran dibaca dari baris users, bukan dari klaim token", async () => {
   aturUlang()
-  S.klaim = { email: "santri@pesantren.id", role: "admin", perangkat: "admin" }
+  S.klaim = { email: "santri@example.com", role: "admin", perangkat: "admin" }
   S.tersimpan = akun("member", "aktif")
   const a = await gerbang()
 
@@ -209,14 +210,25 @@ test("butuhMember dan butuhAdmin mengalihkan, bukan melempar pesan", async () =>
 test("baris users disinkronkan saat webhook belum sempat membuat akun", async () => {
   aturUlang()
   S.tersimpan = null
-  S.klaim = { email: "ustadz@pesantren.id", given_name: "Ustadz", family_name: "Karim" }
+  S.klaim = { email: "ustadz@example.com", given_name: "Ustadz", family_name: "Karim" }
   const a = await gerbang()
 
   const sesi = await a.ambilSesi()
   assert.deepEqual(S.sinkron, [
-    { clerkId: CLERK_ID, email: "ustadz@pesantren.id", namaLengkap: "Ustadz Karim" },
+    { clerkId: CLERK_ID, email: "ustadz@example.com", namaLengkap: "Ustadz Karim" },
   ])
-  assert.equal(sesi.pengguna?.role, "member", "Akun baru tidak pernah langsung jadi pengelola.")
+  assert.deepEqual(S.tanyaClerkId, [CLERK_ID], "Baris lama dicari dulu sebelum akun baru dibuat.")
+  assert.equal(sesi.masuk, true)
+})
+
+test("baris users yang sudah ada tidak memicu pembuatan akun baru", async () => {
+  aturUlang()
+  S.tersimpan = akun("admin", "aktif")
+  const a = await gerbang()
+
+  const sesi = await a.ambilSesi()
+  assert.deepEqual(S.sinkron, [], "Akun yang sudah ada tidak boleh ditimpa akun baru.")
+  assert.equal(sesi.admin, true, "Peran pengelola dibaca dari baris yang sudah tersimpan.")
 })
 
 test("klaim tanpa email memakai sentinel dari clerkId, tanpa nama menjadi null", async () => {

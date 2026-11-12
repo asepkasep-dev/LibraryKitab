@@ -1,115 +1,238 @@
 import assert from "node:assert/strict"
 import { readFileSync, readdirSync } from "node:fs"
-import { join } from "node:path"
+import { join, relative } from "node:path"
 import { test } from "node:test"
+import ts from "typescript"
 
 /**
- * Setiap server action tulis wajib membuka dirinya dengan penjaga sesi: `await`
- * pertama di dalam `try` harus memanggil `butuhAdminAksi` atau `butuhMemberAksi`.
- * Aturan ini selama ini hanya dijaga kebiasaan, dan aksi adalah satu-satunya
- * jalur tulis ke database. Aksi baru yang lupa satu baris akan tetap menulis
- * tanpa error, tanpa test yang merah, dan halaman admin tetap terlihat normal.
+ * Setiap server action tulis wajib membuka dirinya dengan penjaga sesi yang
+ * tepat: `await` pertama di seluruh tubuh harus memanggil penjaga yang
+ * dipetakan untuk aksi itu, dan berada di dalam blok `try`. Aksi adalah
+ * satu-satunya jalur tulis ke database, dan aksi yang lupa satu baris tetap
+ * menulis tanpa error, tanpa test yang merah, dan halaman admin tetap terlihat
+ * normal.
  *
- * Pemeriksaan ini membaca sumber, bukan memanggil kodenya, jadi ia gagal saat
- * penulisan, bukan saat penyalahgunaan.
+ * Sumber dibaca lewat AST, bukan regex, supaya penjaga di dalam komentar, di
+ * dalam closure yang tidak pernah dipanggil, atau sesudah await lain tidak
+ * terhitung. Pemeriksaan ini gagal saat penulisan, bukan saat penyalahgunaan.
  */
 
-const PENJAGA = ["butuhAdminAksi", "butuhMemberAksi", "butuhAdmin", "butuhMember"]
+const ADMIN = "butuhAdminAksi"
+const MEMBER = "butuhMemberAksi"
 
 /**
- * Aksi tanpa penjaga sesi, masing-masing dengan alasan. Butir baru wajib disertai
- * alasan yang bisa dibaca orang lain, bukan sekadar membuat test hijau.
+ * Penjaga wajib per aksi, bukan satu daftar rata: aksi tulis pengelola yang
+ * diturunkan ke penjaga anggota berarti setiap santri aktif boleh mengubah data
+ * perpustakaan. Aksi baru wajib didaftarkan di sini sehingga test merah sampai
+ * ada yang menyatakan siapa yang boleh memanggilnya.
  */
-const DIKECUALIKAN: Record<string, string> = {
-  perpanjangUrlBaca:
-    "Reader boleh dibuka pengunjung anonim. Penyaringnya kitabTayangBySlug: kitab yang tidak tayang menghasilkan null sehingga aksi ini tidak menjadi jalan belakang ke naskah yang belum diterbitkan.",
+const WAJIB: Record<string, string> = {
+  simpanKitab: ADMIN,
+  gantiStatusKitab: ADMIN,
+  hapusKitab: ADMIN,
+  simpanKategori: ADMIN,
+  hapusKategori: ADMIN,
+  simpanPengarang: ADMIN,
+  hapusPengarang: ADMIN,
+  ubahStatusAnggota: ADMIN,
+  ubahPeranAnggota: ADMIN,
+  perbaruiProfilAksi: MEMBER,
+  bukaSesiBaca: MEMBER,
+  simpanProgresBacaAksi: MEMBER,
+  tambahBookmark: MEMBER,
+  hapusBookmarkHalaman: MEMBER,
+  hapusBookmarkId: MEMBER,
+  tambahCatatan: MEMBER,
+  ubahCatatanIsi: MEMBER,
+  hapusCatatanId: MEMBER,
 }
 
-function berkasAksi(): string[] {
-  const dir = join(process.cwd(), "src", "actions")
-  return readdirSync(dir)
-    .filter((nama) => nama.endsWith(".ts"))
+/**
+ * Aksi tanpa penjaga sesi. `penyaring` adalah panggilan yang wajib menjadi
+ * await pertama sebagai ganti penjaga, jadi pengecualian tidak menjadi cek
+ * kosong: alasan tertulisnya ikut diperiksa terhadap kode.
+ */
+const DIKECUALIKAN: Record<string, { alasan: string; penyaring: string }> = {
+  perpanjangUrlBaca: {
+    alasan:
+      "Reader boleh dibuka pengunjung anonim. Kitab yang tidak tayang menghasilkan null sehingga aksi ini tidak menjadi jalan belakang ke naskah yang belum diterbitkan.",
+    penyaring: "kitabTayangBySlug",
+  },
+}
+
+const DIR_AKSI = join(process.cwd(), "src", "actions")
+
+function berkasAksi(dir: string = DIR_AKSI): string[] {
+  return readdirSync(dir, { withFileTypes: true })
+    .flatMap((entri) => {
+      const penuh = join(dir, entri.name)
+      if (entri.isDirectory()) return berkasAksi(penuh)
+      return entri.name.endsWith(".ts") ? [penuh] : []
+    })
     .sort()
 }
 
-type Aksi = { nama: string; badan: string; berkas: string }
+type Aksi = { nama: string; label: string; tubuh: ts.Block }
+
+function adaModifier(node: ts.HasModifiers, kind: ts.SyntaxKind) {
+  return (ts.getModifiers(node) ?? []).some((m) => m.kind === kind)
+}
 
 /**
- * Ambillah tubuh fungsi sebatas pasangan kurung kurawal aslinya. Titik mulainya
- * bukan kurung kurawal pertama setelah nama: tanda tangan boleh membawa nilai
- * bawaan (`berkas: BerkasKitab = {}`) atau tipe objek (`InputHalaman & { isi }`).
- * Karena itu daftar parameter ditutup lebih dulu, baru kurung kurawal berikutnya
- * dianggap pembuka tubuh.
+ * Bentuk export yang tidak bisa diperiksa dilaporkan, bukan dilewati. Tanpa
+ * ini, aksi yang ditulis dengan bentuk baru hilang dari pemindaian dan test
+ * tetap hijau sementara aksinya tidak pernah diperiksa.
  */
-function tubuh(isi: string, dari: number) {
-  let dalam = 0
-  let i = isi.indexOf("(", dari)
-  for (; i < isi.length; i++) {
-    if (isi[i] === "(") dalam++
-    else if (isi[i] === ")" && --dalam === 0) break
-  }
+function bacaBerkas(path: string) {
+  const label = relative(process.cwd(), path).replace(/\\/g, "/")
+  const sf = ts.createSourceFile(path, readFileSync(path, "utf8"), ts.ScriptTarget.Latest, true)
+  const aksi: Aksi[] = []
+  const asing: string[] = []
 
-  const buka = isi.indexOf("{", i + 1)
-  dalam = 0
-  for (let k = buka; k < isi.length; k++) {
-    if (isi[k] === "{") dalam++
-    else if (isi[k] === "}" && --dalam === 0) return isi.slice(buka, k + 1)
-  }
-  return isi.slice(buka)
-}
-
-function daftarAksi(isi: string, berkas: string): Aksi[] {
-  const hasil: Aksi[] = []
-  for (const cocok of isi.matchAll(/export async function (\w+)\s*\(/g)) {
-    hasil.push({ nama: cocok[1], badan: tubuh(isi, cocok.index), berkas })
-  }
-  return hasil
-}
-
-function semuaAksi(): Aksi[] {
-  return berkasAksi().flatMap((nama) =>
-    daftarAksi(readFileSync(join(process.cwd(), "src", "actions", nama), "utf8"), `src/actions/${nama}`),
-  )
-}
-
-test("pemindaian masih menemukan seluruh aksi tulis", () => {
-  const daftar = semuaAksi()
-  assert.ok(
-    daftar.length >= 15,
-    `Pemeriksaan ini kehilangan artinya bila hanya ${daftar.length} aksi yang terbaca; periksa bentuk export di src/actions.`,
-  )
-})
-
-test("setiap server action dibuka oleh penjaga sesi sebelum satu tulisan pun", () => {
-  const temuan: string[] = []
-  for (const aksi of semuaAksi()) {
-    if (DIKECUALIKAN[aksi.nama]) continue
-
-    const awaitPertama = aksi.badan.match(/await\s+([\w$]+)\s*\(/)
-    const penjaga = awaitPertama?.[1] ?? null
-    if (!penjaga || !PENJAGA.includes(penjaga)) {
-      temuan.push(`${aksi.berkas} → ${aksi.nama}: await pertama = ${penjaga ?? "(tidak ada await)"}`)
+  for (const node of sf.statements) {
+    if (ts.isExportAssignment(node) || ts.isExportDeclaration(node)) {
+      asing.push(`${label}: export default / export { } tidak dapat diperiksa`)
       continue
     }
 
-    // Penjaga di luar `try` membuat penolakannya menjadi lemparan mentah ke
-    // klien, bukan HasilAksi bertipe seperti yang diminta AGENTS.md.
-    const coba = aksi.badan.indexOf("try {")
-    const panggilan = aksi.badan.indexOf(`${penjaga}(`)
-    if (coba === -1 || panggilan < coba) {
-      temuan.push(`${aksi.berkas} → ${aksi.nama}: penjaga ${penjaga} berada di luar try`)
+    if (ts.isFunctionDeclaration(node)) {
+      if (!adaModifier(node, ts.SyntaxKind.ExportKeyword)) continue
+      if (!adaModifier(node, ts.SyntaxKind.AsyncKeyword)) continue
+      if (!node.name || !node.body) {
+        asing.push(`${label}: fungsi async tanpa nama atau tanpa tubuh`)
+        continue
+      }
+      aksi.push({ nama: node.name.text, label, tubuh: node.body })
+      continue
+    }
+
+    if (ts.isVariableStatement(node) && adaModifier(node, ts.SyntaxKind.ExportKeyword)) {
+      for (const deklarasi of node.declarationList.declarations) {
+        const nilai = deklarasi.initializer
+        if (!nilai || (!ts.isArrowFunction(nilai) && !ts.isFunctionExpression(nilai))) continue
+        if (!adaModifier(nilai, ts.SyntaxKind.AsyncKeyword)) continue
+        const nama = deklarasi.name.getText(sf)
+        if (!ts.isBlock(nilai.body)) {
+          asing.push(`${label} → ${nama}: tubuh arrow bukan blok, tidak dapat diperiksa`)
+          continue
+        }
+        aksi.push({ nama, label, tubuh: nilai.body })
+      }
     }
   }
 
-  assert.deepEqual(temuan, [], "Tambahkan penjaga sesi, atau kecualikan dengan alasan tertulis.")
+  return { aksi, asing }
+}
+
+function semuaAksi() {
+  return berkasAksi().flatMap((path) => bacaBerkas(path).aksi)
+}
+
+/** Await pertama milik pernyataan ini; closure di dalamnya bukan milik aksi. */
+function awaitPertama(node: ts.Node): ts.AwaitExpression | null {
+  let hasil: ts.AwaitExpression | null = null
+  const telusuri = (n: ts.Node) => {
+    if (hasil) return
+    if (ts.isAwaitExpression(n)) {
+      hasil = n
+      return
+    }
+    if (ts.isFunctionLike(n)) return
+    ts.forEachChild(n, telusuri)
+  }
+  ts.forEachChild(node, telusuri)
+  return hasil
+}
+
+function pemanggil(awaitnya: ts.AwaitExpression): string | null {
+  const ungkapan = awaitnya.expression
+  return ts.isCallExpression(ungkapan) && ts.isIdentifier(ungkapan.expression)
+    ? ungkapan.expression.text
+    : null
+}
+
+/**
+ * Penjaga di luar `try` membuat penolakannya menjadi lemparan mentah ke klien,
+ * bukan HasilAksi bertipe seperti yang diminta AGENTS.md. Yang dihitung hanya
+ * blok `try` itu sendiri: `catch` dan `finally` bukan tempat membuka aksi.
+ */
+function tryPemilik(node: ts.Node, batas: ts.Node): ts.TryStatement | null {
+  let anak = node
+  for (let induk = node.parent; induk && induk !== batas; induk = induk.parent) {
+    if (ts.isTryStatement(induk) && induk.tryBlock === anak) return induk
+    anak = induk
+  }
+  return null
+}
+
+/** Catch yang tidak mengembalikan apa pun membiarkan penolakan penjaga lolos. */
+function mengakhiri(node: ts.Node): boolean {
+  let hasil = false
+  const telusuri = (n: ts.Node) => {
+    if (hasil) return
+    if (ts.isReturnStatement(n) || ts.isThrowStatement(n)) {
+      hasil = true
+      return
+    }
+    if (ts.isFunctionLike(n)) return
+    ts.forEachChild(n, telusuri)
+  }
+  ts.forEachChild(node, telusuri)
+  return hasil
+}
+
+test("peta penjaga mencakup tepat aksi yang ada di src/actions", () => {
+  const terbaca = semuaAksi()
+    .map((a) => a.nama)
+    .sort()
+  const dipetakan = [...Object.keys(WAJIB), ...Object.keys(DIKECUALIKAN)].sort()
+
+  assert.deepEqual(
+    terbaca,
+    dipetakan,
+    "Ada aksi yang belum dipetakan, atau peta memuat aksi yang sudah tidak ada. Perbarui WAJIB/DIKECUALIKAN, jangan biarkan pemindaian kehilangan sasarannya.",
+  )
 })
 
-test("daftar pengecualian tidak menua tanpa terasa", () => {
-  const namaAksi = new Set(semuaAksi().map((a) => a.nama))
-  const basi = Object.keys(DIKECUALIKAN).filter((nama) => !namaAksi.has(nama))
-  assert.deepEqual(
-    basi,
-    [],
-    "Aksi yang dikecualikan sudah tidak ada. Hapus butirnya, jangan dibiarkan menanggung pengecualian baru.",
-  )
+test("bentuk export yang tidak dapat diperiksa tidak dibiarkan lolos", () => {
+  const asing = berkasAksi().flatMap((path) => bacaBerkas(path).asing)
+  assert.deepEqual(asing, [], "Ubah bentuk exportnya, atau perluas pemindai ini supaya aksi itu ikut diperiksa.")
+})
+
+test("setiap aksi dibuka penjaga yang tepat, di dalam try, sebelum satu tulisan pun", () => {
+  const temuan: string[] = []
+
+  for (const aksi of semuaAksi()) {
+    const wajib = WAJIB[aksi.nama]
+    const kecuali = DIKECUALIKAN[aksi.nama]
+    const harapan = wajib ?? kecuali?.penyaring
+    if (!harapan) {
+      temuan.push(`${aksi.label} → ${aksi.nama}: belum dipetakan di WAJIB maupun DIKECUALIKAN`)
+      continue
+    }
+
+    const awaitnya = awaitPertama(aksi.tubuh)
+    const terpanggil = awaitnya ? pemanggil(awaitnya) : null
+    if (terpanggil !== harapan) {
+      temuan.push(
+        `${aksi.label} → ${aksi.nama}: await pertama = ${terpanggil ?? "(tidak ada await)"}, seharusnya ${harapan}`,
+      )
+      continue
+    }
+
+    const coba = awaitnya ? tryPemilik(awaitnya, aksi.tubuh) : null
+    if (!coba) {
+      temuan.push(`${aksi.label} → ${aksi.nama}: penjaga ${harapan} berada di luar try`)
+      continue
+    }
+
+    const tangkap = coba.catchClause
+    if (!tangkap || !mengakhiri(tangkap.block)) {
+      temuan.push(
+        `${aksi.label} → ${aksi.nama}: catch tidak mengembalikan hasil, penolakan penjaga bisa lolos`,
+      )
+    }
+  }
+
+  assert.deepEqual(temuan, [], "Tambahkan penjaga sesi yang tepat, atau kecualikan dengan alasan tertulis.")
 })

@@ -44,10 +44,11 @@ async function slugUntukKitabBaru(dasar: string) {
 }
 
 /**
- * Slug hasil menyunting. Mengganti alamat memutus tautan `/kitab/*` dan `/baca/*`
- * yang sudah dibagikan, dan `revalidatePath` hanya menyasar slug baru sehingga
- * yang lama menyajikan konten basi. Karena itu judul yang menabrak kitab lain
- * ditolak, sama seperti kategori dan pengarang.
+ * Slug hasil menyunting. Tabrakan judul ditolak, bukan dinomori diam-diam:
+ * penomoran otomatis memindahkan alamat tanpa sepengetahuan pengelola sehingga
+ * tautan `/kitab/*` dan `/baca/*` yang sudah dibagikan mati. Perlakuan ini sama
+ * dengan kategori dan pengarang. Rename ke alamat yang bebas tetap memindahkan
+ * tautan dan yang lama menjadi 404; keduanya disegarkan di `simpanKitab`.
  *
  * Pengecualian: baris warisan penomoran otomatis (`judul-2`) menahan alamat
  * lamanya. Menolaknya berarti suntingan yang tidak menyentuh judul ikut
